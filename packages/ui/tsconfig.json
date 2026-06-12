@@ -1,0 +1,6 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "extends": "@repo/typescript-config/react-library.json",
+  "include": ["src"],
+  "exclude": ["dist", "build", "node_modules"]
+}

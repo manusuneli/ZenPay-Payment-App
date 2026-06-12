@@ -1,0 +1,26 @@
+{
+  "name": "user-withdrawal-sweeper",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npx esbuild ./src/index.ts --bundle --platform=node --outfile=dist/index.js",
+    "start": "node dist/index.js",
+    "dev": "npm run build && npm run start"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@repo/db": "*",
+    "@types/express": "^5.0.3",
+    "esbuild": "^0.20.2",
+    "express": "^4.21.2"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.0",
+    "prisma": "^6.10.1",
+    "redis": "^5.6.0"
+  }
+}

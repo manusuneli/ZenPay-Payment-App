@@ -1,0 +1,217 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id         Int       @id   @default(autoincrement())
+  email      String?   @unique
+  name       String?
+  number     String    @unique
+  password   String
+  MPIN        String    @default("0202")
+  accounts              Account[]
+  OnRampTransaction     OnRampTransaction[]
+  OffRampTransaction    OffRampTransaction[]
+  Balance               Balance[]
+  sentTransfers         p2pTransfer[]         @relation(name: "fromUserRelation")
+  receivedTransfers     p2pTransfer[]     @relation(name: "toUserRelation")
+  myContacts            contact[]        @relation(name: "UserToContact")
+  contactOf             contact[]        @relation(name: "ContactToUser")
+  notifications         Notification[]
+  splitBills            SplitBill[]
+  splitEntries          SplitEntry[]
+}
+
+model Account {
+  id        Int       @id   @default(autoincrement())
+  userId    Int
+  accessToken   String?   @unique
+  accountNumber     String    @unique
+  ifsc      String
+  user      User    @relation(fields: [userId], references: [id])
+}
+
+model Merchant {
+  id          Int     @id   @default(autoincrement())
+  email       String @unique
+  name        String?
+  auth_type   AuthType
+}
+
+model OnRampTransaction {
+  id          Int     @id    @default(autoincrement())
+  status      OnRampStatus
+  walletToken String    @unique
+  bankToken   String?    @unique
+  provider    String
+  amount      Int
+  accountNumber String    @default("")
+  startTime   DateTime   @default(now())
+  userId      Int  
+  user        User   @relation(fields: [userId], references: [id])
+}
+
+
+model OffRampTransaction {
+  id          Int     @id    @default(autoincrement())
+  status      OffRampStatus
+  withdrawToken String    @unique
+  toBank      String
+  amount      Int
+  accountNumber String    @default("")
+  startTime   DateTime   @default(now())
+  userId      Int  
+  user        User   @relation(fields: [userId], references: [id])
+}
+
+model Balance {
+  id          Int     @id @default(autoincrement())
+  userId      Int     @unique
+  amount      Int
+  locked      Int
+  user        User    @relation(fields: [userId], references: [id])
+}
+
+model p2pTransfer {
+  id          Int     @id @default(autoincrement())
+  amount      Int     
+  timestamp   DateTime
+  fromUserId  Int
+  fromUser    User     @relation(name: "fromUserRelation", fields: [fromUserId], references: [id])
+  toUserId    Int
+  toUser      User     @relation(name: "toUserRelation", fields: [toUserId], references: [id])
+  toUserName  String
+  type        p2pTransferType?     @default(P2P)
+  paymentModeP2P PaymentTypeP2P
+}
+
+
+// very very good Concept 
+// 2 way contacts
+model contact {
+  id          Int     @id  @default(autoincrement())
+  userId      Int
+  contactId   Int
+  user        User    @relation(name: "UserToContact", fields: [userId], references: [id])
+  contact     User    @relation(name: "ContactToUser", fields: [contactId], references: [id])
+
+  @@unique([userId, contactId])
+  // this is for prev data isme store hoga
+  @@map("contacts")
+}
+
+// one for split
+// one for notifications
+
+
+model SplitBill {
+  id          Int     @id   @default(autoincrement())
+  createdByUserId   Int
+  totalAmount     Int
+  createdAt       DateTime   @default(now())
+  description     String?
+  splits          SplitEntry[]
+  createdByUser   User    @relation(fields: [createdByUserId], references: [id])
+  // @@index([createdByUserId])
+}
+
+model SplitEntry {
+  id          Int    @id   @default(autoincrement())
+  userId      Int
+  name        String
+  email       String
+  phone       String
+  amount      Int
+  description String?
+  status      SplitStatus   @default(PENDING)
+  token       String        @unique
+  tokenExpiresAt  DateTime?
+  paidAt      DateTime?
+  splitBill   SplitBill @relation(fields: [splitBillId], references: [id])
+  splitBillId Int
+  notifications  Notification[]
+  user        User      @relation(fields: [userId], references: [id])
+  // @@index([splitBillId])
+  // @@index([userId])
+  // @@index([token, tokenExpiresAt])
+}
+
+
+model Notification {
+  id          Int   @id     @default(autoincrement())
+  userId      Int
+  title       String
+  message     String                  
+  type        NotificationType        // SPLIT, PAYMENT, TRANSFER
+  action      NotificationAction      // APPROVE, PAY
+  createdAt   DateTime    @default(now())
+  
+  splitId     Int?
+  splitEntry  SplitEntry? @relation(fields: [splitId], references: [id])
+  user        User       @relation(fields: [userId], references: [id])
+  // @@index([userId])
+}
+
+// Only this can be the types of ramp status not any thing else
+// *******************************************
+// These will be in pending when the request will go,
+// This will get updated to Success or Failure when the
+// HDFC bank server will hit the WebHOOK SERVER
+enum OnRampStatus {
+  Success
+  Failure
+  Processing
+}
+
+enum OffRampStatus {
+  Success
+  Failure
+  Processing
+}
+
+
+enum AuthType {
+  Google
+  Github
+}
+
+enum PaymentTypeP2P {
+  received
+  paid
+}
+
+enum NotificationType {
+  SPLIT
+  PAYMENT
+  TRANSFER
+}
+
+enum NotificationAction {
+  APPROVE
+  PAY
+  VIEW
+}
+
+
+enum SplitStatus {
+  PENDING 
+  PROCESSING
+  SUCCESS
+  FAILURE
+  REJECTED
+}
+
+
+enum p2pTransferType {
+  SPLIT
+  P2P
+}
