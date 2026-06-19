@@ -168,7 +168,7 @@ This platform is organized as a monorepo using npm workspaces, enabling consiste
 1. **Clone the repository**:
 
    ```bash
-   git clone https://github.com/jaibhagtani/ZenPay-Payment-App.git
+   git clone https://github.com/manusuneli/ZenPay-Payment-App
    cd ZenPay-Payment-App
    npm install
 2. Configure environment:
