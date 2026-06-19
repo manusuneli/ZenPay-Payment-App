@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { getDetailsByLinkToken } from "../../../../../lib/actions/getDetailsbyLinkToken";
 import { updateAccessToken } from "../../../../../lib/actions/updateAccessToken";
-import dotenv from "dotenv";
-dotenv.config();
+// import dotenv from "dotenv";
+// dotenv.config();
 export default function LinkedAccountPage({
   params,
 }: {
@@ -75,7 +75,7 @@ export default function LinkedAccountPage({
 
     processLink();
   }, [params]);
-return (
+  return (
     <div className="flex items-center justify-center min-h-screen">
       {status === "processing" && (
         <Card>

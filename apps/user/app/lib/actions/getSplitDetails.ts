@@ -70,7 +70,5 @@ export async function getSplitDetails() {
   } catch (e) {
     console.error("getSplitDetails error:", e);
     return { msg: "Something went wrong" };
-  } finally {
-    await prisma.$disconnect();
   }
 }

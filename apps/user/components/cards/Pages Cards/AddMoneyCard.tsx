@@ -8,8 +8,7 @@ import { InputOTPGroup } from "../../inputotpgroup";
 import { createOnRampTrans } from "../../../app/lib/actions/createOnRampTransactions";
 import Link from "next/link";
 import { createOffRampTrans } from "../../../app/lib/actions/createOffRampTransactions";
-import dotenv from "dotenv";
-dotenv.config();
+
 const SUPPORTED_BANKS = [
   { name: "HDFC Bank", redirectUrl: "https://netbanking.hdfcbank.com" },
   { name: "Axis Bank", redirectUrl: "https://www.axisbank.com" },
@@ -61,7 +60,7 @@ export function AddMoney({
         <div className="mt-6 sm:mt-10">
           <div className="flex justify-between items-center mb-2">
             <div className="text-base sm:text-xl font-bold flex">Your Accounts (Select Account)</div>
-            
+
             <Link href="/link-account">
               <Button className="bg-black text-white hover:bg-gray-800 text-sm sm:text-base px-4 py-2 rounded">
                 Link Account
@@ -78,57 +77,56 @@ export function AddMoney({
           />
 
           <div className="w-full overflow-x-auto rounded-lg shadow border text-sm sm:text-base">
-  <div className="min-w-full">
-    <table className="min-w-full divide-y divide-gray-200">
-      <thead className="bg-gray-50 sticky top-0 z-10">
-        <tr>
-          <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 uppercase">
-            Bank
-          </th>
-          <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 uppercase">
-            Account Number
-          </th>
-          <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 uppercase">
-            IFSC
-          </th>
-        </tr>
-      </thead>
-    </table>
+            <div className="min-w-full">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50 sticky top-0 z-10">
+                  <tr>
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 uppercase">
+                      Bank
+                    </th>
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 uppercase">
+                      Account Number
+                    </th>
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 uppercase">
+                      IFSC
+                    </th>
+                  </tr>
+                </thead>
+              </table>
 
-    <div className="max-h-40 overflow-y-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <tbody className="bg-white divide-y divide-gray-200">
-          {filteredAccounts.length > 0 ? (
-            filteredAccounts.map((acc, idx) => (
-              <tr
-                key={idx}
-                className={`cursor-pointer hover:bg-gray-100 ${
-                  selectedAccount === acc.accountNumber ? "bg-blue-100" : ""
-                }`}
-                onClick={() => {
-                  setSelectedAccount(acc.accountNumber);
-                  setProvider(acc.bank);
-                  const meta = SUPPORTED_BANKS.find((b) => b.name === acc.bank);
-                  setRedirectUrl(meta?.redirectUrl || "");
-                }}
-              >
-                <td className="px-3 sm:px-6 py-3 whitespace-nowrap">{acc.bank}</td>
-                <td className="px-3 sm:px-6 py-3 whitespace-nowrap font-mono">{acc.accountNumber}</td>
-                <td className="px-3 sm:px-6 py-3 whitespace-nowrap">{acc.ifsc}</td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td className="px-6 py-4 text-center" colSpan={3}>
-                No matching accounts
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
+              <div className="max-h-40 overflow-y-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredAccounts.length > 0 ? (
+                      filteredAccounts.map((acc, idx) => (
+                        <tr
+                          key={idx}
+                          className={`cursor-pointer hover:bg-gray-100 ${selectedAccount === acc.accountNumber ? "bg-blue-100" : ""
+                            }`}
+                          onClick={() => {
+                            setSelectedAccount(acc.accountNumber);
+                            setProvider(acc.bank);
+                            const meta = SUPPORTED_BANKS.find((b) => b.name === acc.bank);
+                            setRedirectUrl(meta?.redirectUrl || "");
+                          }}
+                        >
+                          <td className="px-3 sm:px-6 py-3 whitespace-nowrap">{acc.bank}</td>
+                          <td className="px-3 sm:px-6 py-3 whitespace-nowrap font-mono">{acc.accountNumber}</td>
+                          <td className="px-3 sm:px-6 py-3 whitespace-nowrap">{acc.ifsc}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td className="px-6 py-4 text-center" colSpan={3}>
+                          No matching accounts
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
 
         </div>
 
@@ -179,13 +177,12 @@ export function AddMoney({
                     state={isLoading}
                     onClickFunc={async () => {
 
-                      if(title === "Deposit")
-                      {
+                      if (title === "Deposit") {
                         setIsLoading(true)
                         const res = await validateMpin();
                         if (res.msg === "Valid User") {
                           const result = await createOnRampTrans(provider, value, selectedAccount);
-  
+
                           if (result?.bankToken) {
                             // console.log(redirectUrl)
                             window.location.href = `${redirectUrl}/deposit-to-wallet/${result.bankToken}`;
@@ -197,12 +194,12 @@ export function AddMoney({
                         }
                         setIsLoading(false);
                       }
-                      else if(title === "Withdraw"){
+                      else if (title === "Withdraw") {
                         setIsLoading(true)
                         const res = await validateMpin();
                         if (res.msg === "Valid User") {
                           const result = await createOffRampTrans(provider, value, selectedAccount);
-  
+
                           if (result?.msg === "Withdrawal request is in Progress !!") {
                             // console.log(redirectUrl)
                             alert(result.msg);

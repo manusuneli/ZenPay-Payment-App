@@ -4,10 +4,10 @@ import React, { useState } from "react";
 import { FaCheckCircle } from "react-icons/fa";
 import { InputOTPGroup } from "../inputotpgroup";
 import { cacheInRedis } from "../../app/lib/actions/cacheLinkUserDetails";
-import dotenv from "dotenv";
-dotenv.config();
+
+
 const ZENBANK_URL = process.env.NEXT_PUBLIC_ZENBANK_URL;
-export default function LinkAccountForm({ userId, number, emailUser} : {userId: number, number: string, emailUser:string}) {
+export default function LinkAccountForm({ userId, number, emailUser }: { userId: number, number: string, emailUser: string }) {
   const { data: session } = useSession();
   const [step, setStep] = useState("info");
   const [loading, setLoading] = useState(false);
@@ -29,8 +29,7 @@ export default function LinkAccountForm({ userId, number, emailUser} : {userId: 
       return alert("Please fill all fields correctly.");
     }
     setLoading(true);
-    if(bank !== "ZENBANK")
-    {
+    if (bank !== "ZENBANK") {
       setLoading(false);
       return alert(`We currently have contact only with ZENBANK !!
 We don't currently have contacts with this bank`)
@@ -41,13 +40,11 @@ We don't currently have contacts with this bank`)
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: userId, email: email, phone: phone, name: name, accountNumber: accountNumber, ifsc: ifsc })
       });
-      if(!resUser.ok || resUser.status === 400)
-      {
+      if (!resUser.ok || resUser.status === 400) {
         setLoading(false);
         return alert("Invalid Details Enter, check them once !!");
       }
-      else if(resUser.status === 500)
-      {
+      else if (resUser.status === 500) {
         setLoading(false);
         return alert("something Wrong Occured, TRY AGAIN !!")
       }
@@ -71,19 +68,17 @@ We don't currently have contacts with this bank`)
         body: JSON.stringify({ Mpin: mpin, email })
       });
       const response = await resMpin.json();
-      if (!resMpin.ok) 
-      { 
+      if (!resMpin.ok) {
         setLoading(false);
         throw new Error("MPIN validation failed");
       }
-      else if(response === "Invalid MPIN")
-      {
+      else if (response === "Invalid MPIN") {
         setLoading(false);
         return alert(response.msg)
       }
       setLoading(false);
       setStep("otp");
-    } catch (err : any) {
+    } catch (err: any) {
       alert("Error: " + err.message);
       return setLoading(false);
     }
@@ -91,87 +86,87 @@ We don't currently have contacts with this bank`)
     try {
       const resOtp = await fetch("/api/link-account/otp/send-otp", {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, phone, accountNumber, ifsc, bank, name })
       });
-      if (!resOtp.ok) throw new Error("Failed to send OTP."); 
+      if (!resOtp.ok) throw new Error("Failed to send OTP.");
     }
-    catch (err : any) {
+    catch (err: any) {
       setLoading(false);
       alert("Error: " + err.message);
     }
   };
 
-const handleFinalSubmit = async () => {
-  if (otp.length !== 4) return alert("OTP must be 4 digits.");
-  setLoading(true);
+  const handleFinalSubmit = async () => {
+    if (otp.length !== 4) return alert("OTP must be 4 digits.");
+    setLoading(true);
 
-  try {
-    const res = await fetch("/api/link-account/otp/verify-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ otp, email }),
-    });
+    try {
+      const res = await fetch("/api/link-account/otp/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ otp, email }),
+      });
 
-    if (!res.ok) {
-      setLoading(false);
-      return alert("OTP verification failed.");
-    }
+      if (!res.ok) {
+        setLoading(false);
+        return alert("OTP verification failed.");
+      }
 
-    const bank_res = await fetch(`${ZENBANK_URL}/api/link/link-account/get-linking-token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userIdAccordingToWallet: userId,
+      const bank_res = await fetch(`${ZENBANK_URL}/api/link/link-account/get-linking-token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userIdAccordingToWallet: userId,
+          phoneNumber: number,
+          email: session?.user?.email,
+          call_back_URL: `${process.env.NEXT_PUBLIC_ZENPAY_URL}/account-linked`,
+          accountNumber,
+          ifsc,
+          provider: bank,
+        }),
+      });
+
+      if (bank_res.status === 400) {
+        setLoading(false);
+        alert("Ensure you have an account in this bank or correct the account number.");
+        setStep("info");
+        return;
+      }
+
+      if (bank_res.status === 500) {
+        setLoading(false);
+        alert("Bank linking issue. Try again!");
+        setStep("info");
+        return;
+      }
+
+      const data = await bank_res.json();
+      const token = data?.token;
+
+      if (!token) {
+        throw new Error("No linking token received from bank.");
+      }
+
+      await cacheInRedis({
+        userId: userId.toString(),
+        name: session?.user?.name || "",
         phoneNumber: number,
-        email: session?.user?.email,
-        call_back_URL: `${process.env.NEXT_PUBLIC_ZENPAY_URL}/account-linked`,
+        email: session?.user?.email || "",
         accountNumber,
         ifsc,
+        bank,
+        token,
         provider: bank,
-      }),
-    });
+      });
 
-    if (bank_res.status === 400) {
+      window.location.href = `${ZENBANK_URL}/link-account/${token}`;
+    } catch (err) {
+      console.error("[Linking Error]", err);
+      alert("Something went wrong. Please try again.");
       setLoading(false);
-      alert("Ensure you have an account in this bank or correct the account number.");
-      setStep("info");
-      return;
     }
-
-    if (bank_res.status === 500) {
-      setLoading(false);
-      alert("Bank linking issue. Try again!");
-      setStep("info");
-      return;
-    }
-
-    const data = await bank_res.json();
-    const token = data?.token;
-
-    if (!token) {
-      throw new Error("No linking token received from bank.");
-    }
-
-    await cacheInRedis({
-      userId: userId.toString(),
-      name: session?.user?.name || "",
-      phoneNumber: number,
-      email: session?.user?.email || "",
-      accountNumber,
-      ifsc,
-      bank,
-      token,
-      provider: bank,
-    });
-
-    window.location.href = `${ZENBANK_URL}/link-account/${token}`;
-  } catch (err) {
-    console.error("[Linking Error]", err);
-    alert("Something went wrong. Please try again.");
-    setLoading(false);
-  }
-};
+  };
 
 
   return (
@@ -261,9 +256,8 @@ function PrimaryButton({ onClick, children, disabled }: any) {
     <button
       disabled={disabled}
       onClick={onClick}
-      className={`w-full mt-4 py-3 rounded-lg font-semibold text-white transition ${
-        disabled ? "bg-purple-300 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-500"
-      }`}
+      className={`w-full mt-4 py-3 rounded-lg font-semibold text-white transition ${disabled ? "bg-purple-300 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-500"
+        }`}
     >
       {children}
     </button>

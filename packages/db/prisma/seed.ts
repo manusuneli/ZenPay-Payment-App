@@ -20,7 +20,7 @@ async function main()
                     startTime: new Date(),
                     status: "Success",
                     amount: 628793,
-                    token: "130",
+                    walletToken: "130",
                     provider: "HDFC Bank",
                 },
             },

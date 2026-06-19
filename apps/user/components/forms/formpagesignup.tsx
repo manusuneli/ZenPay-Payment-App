@@ -4,7 +4,6 @@ import LabelledInputAuth from "@repo/ui/labelledinputauth"
 import { useRouter } from "next/navigation";
 import {signIn} from "next-auth/react"
 import {z} from "zod";
-import { prisma } from "@repo/db/client";
 import { InputOTPGroup } from "../inputotpgroup";
 
 
@@ -50,6 +49,12 @@ export default function FormPageSignup() {
   const [isLoadingSignup, setIsLoadingSignup] = useState(false);
   const router = useRouter()
   const [firstTime, setFirstTime] = useState(true)
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const startTimer = () => {
     setTimeLeft(60);
     setTimerRunning(true);
@@ -222,6 +227,10 @@ export default function FormPageSignup() {
   }, [contact]);
   
 
+  if (!mounted) {
+    return null;
+  }
+
   return (
     <div onSubmit={handleLogin} className="w-full py-5 mx-5 px-10 h-max bg-white rounded-3xl">
       <div className="flex items-center justify-center gap-3 pb-2 text-purple-700">
@@ -319,7 +328,10 @@ export default function FormPageSignup() {
               {
                 alert("Something went wrong!")
               }
-              setFirstTime(false)
+              else if(res === 200)
+              {
+                setFirstTime(false)
+              }
             }
             else if(nextres)
             {

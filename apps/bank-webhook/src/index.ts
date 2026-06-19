@@ -9,14 +9,14 @@ dotenv.config();
 const port = process.env.PORT;
 app.use(express.json())
 
-app.get("/", async (req : any, res: any) => {
+app.get("/", async (req: any, res: any) => {
     res.status(200).json({
-        msg : "Bank Webhook is Running"
+        msg: "Bank Webhook is Running"
     })
 })
 
 // console.log(port)
-app.post("/hdfcWebhook", async (req : any, res: any) => {
+app.post("/hdfcWebhook", async (req: any, res: any) => {
     // *********************************************************
     // ****************(TODO)*****************
     // 1. Add zod validation here
@@ -37,7 +37,7 @@ app.post("/hdfcWebhook", async (req : any, res: any) => {
     // console.log(paymentInformation.amount);
     // Transactions => Either both update should happen or none can happen
     try {
-        
+
         await prisma.$transaction([
             prisma.balance.update({
                 where: {
@@ -55,37 +55,36 @@ app.post("/hdfcWebhook", async (req : any, res: any) => {
                     amount: Number(paymentInformation.amount),
                     status: "Processing"
                 },
-                data : {
+                data: {
                     // amount: Number(paymentInformation.amount),
                     status: "Success"
                 }
             })
         ]);
-            // To tell the HDFC server with status 200
-            // ******** V.V.V.V. IMP ********
-            // ************** SUPER IMP **************
-            // if sent bad status code 411, then they will assume that not able to capture
-            // and then they will refund this amount to user
-        
-            // BE VERY CAREFULL WHILE RETURNING STATUS CODE
-            res.status(200).json({
-                msg : "Captured"
-            })
-        }
-    
-        catch(e)
-        {
-            console.error(e);
-            res.status(411).json({
-                msg : "Error while processing webhook"
-            })
-        }
-})  
+        // To tell the HDFC server with status 200
+        // ******** V.V.V.V. IMP ********
+        // ************** SUPER IMP **************
+        // if sent bad status code 411, then they will assume that not able to capture
+        // and then they will refund this amount to user
+
+        // BE VERY CAREFULL WHILE RETURNING STATUS CODE
+        res.status(200).json({
+            msg: "Captured"
+        })
+    }
+
+    catch (e) {
+        console.error(e);
+        res.status(411).json({
+            msg: "Error while processing webhook"
+        })
+    }
+})
 
 
 
 
-app.post("/zenbankWebhook", async (req : any, res: any) => {
+app.post("/zenbankWebhook", async (req: any, res: any) => {
     // *********************************************************
     // ****************(TODO)*****************
     // 1. Add zod validation here
@@ -112,8 +111,7 @@ app.post("/zenbankWebhook", async (req : any, res: any) => {
     // Transactions => Either both update should happen or none can happen
     try {
         let isDone = false;
-        if(paymentInformation.status === "SUCCESS")
-        {
+        if (paymentInformation.status === "SUCCESS") {
             await prisma.$transaction(async (tx) => {
 
                 await tx.balance.update({
@@ -127,62 +125,59 @@ app.post("/zenbankWebhook", async (req : any, res: any) => {
                     }
                 }),
 
-                await tx.onRampTransaction.update({
-                    where: {
-                        walletToken: paymentInformation.walletToken,
-                        amount: Number(paymentInformation.amount),
-                        status: {
-                            in: ["Failure", "Processing"]
+                    await tx.onRampTransaction.update({
+                        where: {
+                            walletToken: paymentInformation.walletToken,
+                            amount: Number(paymentInformation.amount),
+                            status: {
+                                in: ["Failure", "Processing"]
+                            }
+                        },
+                        data: {
+                            // amount: Number(paymentInformation.amount),
+                            status: "Success"
                         }
-                    },
-                    data : {
-                        // amount: Number(paymentInformation.amount),
-                        status: "Success"
-                    }
-                })
+                    })
                 isDone = true
             }
-        );
+            );
         }
-        else
-        {
+        else {
             await prisma.onRampTransaction.update({
                 where: {
                     walletToken: paymentInformation.walletToken,
                     amount: Number(paymentInformation.amount),
                     status: { in: ["Processing", "Failure"] }
                 },
-                data : {
+                data: {
                     status: paymentInformation.status
                 }
             })
             isDone = true
         }
-            // To tell the HDFC server with status 200
-            // ******** V.V.V.V. IMP ********
-            // ************** SUPER IMP **************
-            // if sent bad status code 411, then they will assume that not able to capture
-            // and then they will refund this amount to user
-        
-            // BE VERY CAREFULL WHILE RETURNING STATUS CODE
-            if(isDone)
-            {
-                res.status(200).json({
-                    msg : "Captured"
-                })
-            }
-            res.status(400).json({
-                msg: "Error while processing webhook"
+        // To tell the HDFC server with status 200
+        // ******** V.V.V.V. IMP ********
+        // ************** SUPER IMP **************
+        // if sent bad status code 411, then they will assume that not able to capture
+        // and then they will refund this amount to user
+
+        // BE VERY CAREFULL WHILE RETURNING STATUS CODE
+        if (isDone) {
+            return res.status(200).json({
+                msg: "Captured"
             })
         }
-    
-        catch(e)
-        {
-            res.status(411).json({
-                msg : `Error while processing webhook`
-            })
-        }
-})  
+        return res.status(400).json({
+            msg: "Error while processing webhook"
+        })
+    }
+
+    catch (e) {
+        return res.status(411).json({
+            msg: `Error while processing webhook`
+        })
+    }
+})
 
 
 app.listen(port, () => {
