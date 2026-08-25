@@ -190,10 +190,11 @@ export function SplitBillModal({
         </div>
 
         <div>
-          <label className="block mb-1">Total Amount</label>
+          <label className="block mb-1 font-medium text-gray-700">Total Amount</label>
           <input
             type="number"
             value={totalAmt === 0 ? "" : totalAmt}
+            placeholder="Enter total bill amount (e.g. 1500)"
             onChange={(e) => {
               const raw = e.target.value;
               const cleaned = raw.replace(/^0+(?=\d)/, "");
@@ -201,18 +202,18 @@ export function SplitBillModal({
               setTotalAmt(val);
               setAmount(val);
             }}
-            className="w-full border rounded-md px-3 py-2"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6e3cbc]/50"
           />
         </div>
 
-
         <div>
-          <label className="block mb-1">Your Description</label>
+          <label className="block mb-1 font-medium text-gray-700">Your Description</label>
           <input
             type="text"
             value={creatorDescription}
+            placeholder="Enter description (e.g. Dinner, Weekend trip, Groceries)"
             onChange={(e) => setCreatorDescription(e.target.value)}
-            className="w-full border rounded-md px-3 py-2"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6e3cbc]/50"
           />
         </div>
 
