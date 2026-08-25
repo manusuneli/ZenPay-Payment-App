@@ -1,81 +1,84 @@
-import { HomeIcon, P2P, Transactions, Transfer } from "@repo/ui/icons";
+import React from "react";
+import { getServerSession } from "next-auth";
+import { NEXT_AUTH } from "../app/lib/auth";
+import { prisma } from "@repo/db/client";
+import { Home, ArrowLeftRight, Users, CreditCard, User, ShieldCheck, History, FileText, Bell } from "lucide-react";
 import SideBarItems from "@repo/ui/sidebaritems";
-import { MdOutlineGroupAdd } from "react-icons/md";
-import { FaRegCreditCard } from "react-icons/fa";
 
+export default async function SidebarPC({ type }: { type: "Dashboard" | "Profile" }) {
+  if (type !== "Dashboard") return null;
 
+  const session = await getServerSession(NEXT_AUTH);
+  const userId = session?.user?.id;
+  
+  let unreadCount = 0;
+  let userDetails = { name: "User", email: "" };
 
-export default function SidebarPC({type} : {type: "Dashboard" | "Profile"})
-{
-    if(type === "Dashboard")
-    {
-        return ( <div className="disable lg:fixed top-20 left-0 z-30 font-medium">
-            <div className="pt-4">
-                <SideBarItems href="/dashboard" icon={<HomeIcon/>} title="Home"></SideBarItems>
-            </div>
-            <div className="pt-4">
-                <SideBarItems href="/transfer/deposit" icon={<Transfer/>} title="Transfer"></SideBarItems>
-            </div>
-            <div className="pt-4">
-                <SideBarItems href="/p2p" icon={<P2P />} title="P2P Transfer"></SideBarItems>
-            </div>
-            <div className="pt-4">
-                <SideBarItems href="/split-bill" icon={<MdOutlineGroupAdd size={26} />} title="Bills Split"></SideBarItems>
-            </div>
-            <div className="pt-4">
-                <SideBarItems href="/notificationsnpendings" icon={<Transactions />} title="Notifications"></SideBarItems>
-            </div>
-            <div className="pt-4">
-                <SideBarItems href="/transactions/deposit" icon={<Transactions />} title="Transactions"></SideBarItems>
-            </div>
-            <div className="pt-4">
-                <SideBarItems href="/accounts" icon={<FaRegCreditCard size={26}/>} title="Cards"></SideBarItems>
-            </div>
-            <div className="pt-4">
-                <SideBarItems href="/profile" icon={<ProfileIcon/>} title="Profile"></SideBarItems>
-            </div>
-            <div className="pt-4">
-                <SideBarItems href="/mpin/update" icon={<MPINIcon/>} title="MPIN"></SideBarItems>
-            </div>
-        </div>
-        )
-        
+  if (userId) {
+    // Fetch unread/actionable notifications count from DB
+    unreadCount = await prisma.notification.count({
+      where: {
+        userId: Number(userId),
+        OR: [
+          { splitId: null },
+          { splitEntry: { status: "PENDING" } }
+        ]
+      }
+    });
+
+    // Fetch user details
+    const user = await prisma.user.findUnique({
+      where: { id: Number(userId) },
+      select: { name: true, email: true }
+    });
+    if (user) {
+      userDetails.name = user.name || "User";
+      userDetails.email = user.email || "";
     }
-}
+  }
 
-function ProfileIcon()
-{
-    return (
-        <div>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-            </svg>
+  const initials = userDetails.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase();
 
+  return (
+    <div className="fixed top-16 left-0 w-64 h-[calc(100vh-4rem)] bg-white dark:bg-[#0d0d1a] border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between py-6 z-30 transition-colors duration-300">
+      <div className="space-y-1 overflow-y-auto px-2">
+        <SideBarItems href="/dashboard" icon={<Home className="w-5 h-5" />} title="Home" />
+        <SideBarItems href="/transfer/deposit" icon={<ArrowLeftRight className="w-5 h-5" />} title="Transfer" />
+        <SideBarItems href="/p2p" icon={<Users className="w-5 h-5" />} title="P2P Transfer" />
+        <SideBarItems href="/split-bill" icon={<FileText className="w-5 h-5" />} title="Bills Split" />
+        <SideBarItems 
+          href="/notificationsnpendings" 
+          icon={<Bell className="w-5 h-5" />} 
+          title="Notifications" 
+          badge={
+            unreadCount > 0 ? (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white leading-none">
+                {unreadCount}
+              </span>
+            ) : null
+          }
+        />
+        <SideBarItems href="/transactions/deposit" icon={<History className="w-5 h-5" />} title="Transactions" />
+        <SideBarItems href="/accounts" icon={<CreditCard className="w-5 h-5" />} title="Cards" />
+        <SideBarItems href="/profile" icon={<User className="w-5 h-5" />} title="Profile" />
+        <SideBarItems href="/mpin/update" icon={<ShieldCheck className="w-5 h-5" />} title="MPIN" />
+      </div>
+
+      {/* User Profile Block at the Bottom */}
+      <div className="border-t border-slate-200 dark:border-slate-800 pt-4 px-6 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-300 flex items-center justify-center font-semibold text-sm flex-shrink-0">
+          {initials}
         </div>
-    )
-}
-
-
-function MPINIcon()
-{
-    return (
-        <div>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-            </svg>
-
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{userDetails.name}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{userDetails.email}</p>
         </div>
-    )
-}
-
-
-function BalanceIcon()
-{
-    return (
-        <div>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
-            </svg>
-        </div>
-    )
+      </div>
+    </div>
+  );
 }

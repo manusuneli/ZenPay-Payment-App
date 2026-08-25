@@ -1,12 +1,14 @@
 "use client";
+
+import React, { useState, useRef, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { Home, ArrowLeftRight, Users, CreditCard, User, ShieldCheck, History, FileText, Bell, Menu, X } from "lucide-react";
 import SideBarItems from "@repo/ui/sidebaritems";
-import { useState, useRef, useEffect } from "react";
-import { HomeIcon, P2P, Transactions, Transfer } from "@repo/ui/icons";
-import { MdOutlineGroupAdd } from "react-icons/md";
-import { FaRegCreditCard } from "react-icons/fa";
+
 export default function SideBarMobile({ type }: { type: "Profile" | "Dashboard" }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const { data: session } = useSession();
 
   const hideSidebar = () => setIsSidebarOpen(false);
 
@@ -29,100 +31,80 @@ export default function SideBarMobile({ type }: { type: "Profile" | "Dashboard" 
 
   if (type !== "Dashboard") return null;
 
+  const userDetails = {
+    name: session?.user?.name || "User",
+    email: session?.user?.email || ""
+  };
+
+  const initials = userDetails.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase();
+
   return (
     <div>
-      {/* Hamburger / Close button */}
+      {/* Hamburger Menu Trigger */}
       <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         type="button"
-        className={`
-          fixed top-20 left-4 z-50
-          p-3 rounded-xl shadow-md
-          bg-slate-50 text-purple-600
-          hover:bg-slate-100
-          border border-slate-200
-          transition duration-300 ease-in-out
-          lg:hidden
-        `}
+        className="fixed top-16 left-4 z-40 p-2.5 rounded-xl shadow-md bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 hover:bg-slate-50 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700 transition duration-200 lg:hidden"
         aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
       >
-        {isSidebarOpen ? (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"
-            className="w-6 h-6"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        ) : (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"
-            className="w-6 h-6"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        )}
+        {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
 
-      {/* Backdrop */}
+      {/* Drawer Overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-30 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Mobile Drawer Navigation */}
       <div
         ref={sidebarRef}
-        className={`
-          fixed top-0 left-0 z-50
-          w-72 max-w-full
-          h-screen
-          transform ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          transition-transform duration-300 ease-in-out
-          bg-slate-50
-          border-r border-slate-200
-          shadow-xl
-          rounded-r-2xl
-          p-6
-          lg:hidden
-        `}
+        className={`fixed top-0 left-0 z-50 w-72 max-w-[85vw] h-screen transform transition-transform duration-300 ease-in-out bg-white dark:bg-[#0d0d1a] border-r border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col justify-between py-6 px-4 lg:hidden ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
-        <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 mb-8">
-          Dashboard
+        <div>
+          <div className="flex items-center justify-between mb-8 px-4 pt-2">
+            <span className="font-extrabold text-2xl text-purple-600 dark:text-purple-400">ZenPay</span>
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="space-y-1 overflow-y-auto max-h-[calc(100vh-12rem)]">
+            <SideBarItems setClickFunc={hideSidebar} href="/dashboard" icon={<Home className="w-5 h-5" />} title="Home" />
+            <SideBarItems setClickFunc={hideSidebar} href="/transfer/deposit" icon={<ArrowLeftRight className="w-5 h-5" />} title="Transfer" />
+            <SideBarItems setClickFunc={hideSidebar} href="/p2p" icon={<Users className="w-5 h-5" />} title="P2P Transfer" />
+            <SideBarItems setClickFunc={hideSidebar} href="/split-bill" icon={<FileText className="w-5 h-5" />} title="Bills Split" />
+            <SideBarItems setClickFunc={hideSidebar} href="/notificationsnpendings" icon={<Bell className="w-5 h-5" />} title="Notifications" />
+            <SideBarItems setClickFunc={hideSidebar} href="/transactions/deposit" icon={<History className="w-5 h-5" />} title="Transactions" />
+            <SideBarItems setClickFunc={hideSidebar} href="/accounts" icon={<CreditCard className="w-5 h-5" />} title="Cards" />
+            <SideBarItems setClickFunc={hideSidebar} href="/profile" icon={<User className="w-5 h-5" />} title="Profile" />
+            <SideBarItems setClickFunc={hideSidebar} href="/mpin/update" icon={<ShieldCheck className="w-5 h-5" />} title="MPIN" />
+          </div>
         </div>
 
-        <ul className="space-y-4 text-slate-700">
-          <li><SideBarItems setClickFunc={hideSidebar} href="/dashboard" icon={<HomeIcon />} title="Home" /></li>
-          <li><SideBarItems setClickFunc={hideSidebar} href="/transfer/deposit" icon={<Transfer />} title="Transfer" /></li>
-          <li><SideBarItems setClickFunc={hideSidebar} href="/p2p" icon={<P2P />} title="P2P Transfer" /></li>
-          <li><SideBarItems setClickFunc={hideSidebar} href="/split-bill" icon={<MdOutlineGroupAdd size={24} />} title="Bills Split" /></li>
-          <li><SideBarItems setClickFunc={hideSidebar} href="/notificationsnpendings" icon={<Transactions />} title="Notifications" /></li>
-          <li><SideBarItems setClickFunc={hideSidebar} href="/transactions/deposit" icon={<Transactions />} title="Transactions" /></li>
-          <li><SideBarItems setClickFunc={hideSidebar} href="/accounts" icon={<FaRegCreditCard size={24} />} title="Cards" /></li>
-          <li><SideBarItems setClickFunc={hideSidebar} href="/profile" icon={<ProfileIcon />} title="Profile" /></li>
-          <li><SideBarItems setClickFunc={hideSidebar} href="/mpin/update" icon={<MPINIcon />} title="MPIN" /></li>
-        </ul>
+        {/* User profile block at bottom of drawer */}
+        <div className="border-t border-slate-200 dark:border-slate-800 pt-4 px-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-300 flex items-center justify-center font-semibold text-sm flex-shrink-0">
+            {initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{userDetails.name}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{userDetails.email}</p>
+          </div>
+        </div>
       </div>
     </div>
-  );
-}
-
-// === Icons ===
-function ProfileIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-    </svg>
-  );
-}
-
-function MPINIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75M3.75 18.75h16.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-    </svg>
   );
 }
