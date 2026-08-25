@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { X, Plus, Loader2, Users, Search, DollarSign, ListTodo, ShieldAlert } from "lucide-react";
+import { X, Plus, Loader2, Users, Search, DollarSign, ListTodo, ShieldAlert, ArrowRight } from "lucide-react";
 import { getContacts } from "../../../app/lib/actions/getContacts";
 import { CreateSplit } from "../../../app/lib/actions/createSplit";
 import { useToast } from "../../../providers/ToastProvider";
