@@ -1,13 +1,10 @@
-"use client"
+"use client";
+
 import React, { useState, useEffect } from 'react';
-import { FaRegCreditCard } from 'react-icons/fa6';
-import { HiOutlineEye, HiOutlineEyeSlash } from 'react-icons/hi2';
-import { HiOutlineRefresh } from "react-icons/hi";
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
+import { CreditCard, Eye, EyeOff, RefreshCw, ArrowUpRight, Plus } from 'lucide-react';
 import { getBalance } from '../../../app/lib/actions/getBalance';
-import { ButtonDashboardtoRedirect } from '../../buttons/buttonsUsed';
 import { useRouter } from 'next/navigation';
-import { P2P } from '@repo/ui/icons';
-import { IoIosTrendingDown } from "react-icons/io";
 
 interface MainCardDashboardProps {
   currency?: string;
@@ -15,21 +12,39 @@ interface MainCardDashboardProps {
 
 export function MainCardDashboard({ currency = '₹' }: MainCardDashboardProps) {
   const [balance, setBalance] = useState<string>("0.00");
+  const [lockedBalance, setLockedBalance] = useState<string>("0.00");
   const [toShow, setToShow] = useState<boolean>(true);
   const [updatedAt, setUpdatedAt] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const router = useRouter();
+
+  // Framer Motion Values for counters
+  const balanceCount = useMotionValue(0);
+  const lockedCount = useMotionValue(0);
+
+  const animatedBalance = useTransform(balanceCount, (latest) => latest.toFixed(2));
+  const animatedLocked = useTransform(lockedCount, (latest) => latest.toFixed(2));
 
   const refreshBalance = async () => {
     setIsLoading(true);
     try {
       const data = await getBalance();
-      const amt = (Number(data?.balance?.amount) / 100).toFixed(2) || "0.00";
-      setBalance(amt);
-      setUpdatedAt(new Date().toLocaleTimeString());
+      const amt = (Number(data?.balance?.amount) / 100) || 0;
+      const lockedAmt = (Number(data?.balance?.locked) / 100) || 0;
+
+      // Animate from previous state to new state
+      animate(balanceCount, amt, { duration: 1, ease: "easeOut" });
+      animate(lockedCount, lockedAmt, { duration: 1, ease: "easeOut" });
+
+      setBalance(amt.toFixed(2));
+      setLockedBalance(lockedAmt.toFixed(2));
+      setUpdatedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     } catch (err) {
       console.error('Error fetching balance:', err);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -37,93 +52,108 @@ export function MainCardDashboard({ currency = '₹' }: MainCardDashboardProps) 
   }, []);
 
   return (
-    <div className="col-span-2 bg-purple-500/95 text-white rounded-3xl p-6 sm:p-8 lg:py-10 shadow-3xl h-max my-auto">
-      <div className="flex items-center justify-end space-x-2">
-        <button
-          onClick={refreshBalance}
-          title="Refresh balance"
-          className="relative p-2 bg-purple-600/60 rounded-full hover:bg-purple-600 transition"
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-                fill="none"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
-            </svg>
-          ) : (
-            <HiOutlineRefresh className="text-white" size={24} />
-          )}
-        </button>
+    <motion.div
+      whileHover={{ y: -4, scale: 1.01 }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      className="col-span-1 lg:col-span-2 relative overflow-hidden bg-gradient-to-br from-purple-600 to-indigo-700 text-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-purple-500/10 border border-white/10 shimmer"
+    >
+      {/* Background decoration */}
+      <div className="absolute -right-16 -bottom-16 w-64 h-64 bg-white/5 rounded-full blur-2xl pointer-events-none" />
+      <div className="absolute left-1/3 top-10 w-48 h-48 bg-purple-500/20 rounded-full blur-xl pointer-events-none" />
 
-        <button
-          onClick={() => setToShow(v => !v)}
-          title={toShow ? 'Hide balance' : 'Show balance'}
-          className="p-2 bg-purple-600/60 rounded-full hover:bg-purple-600 transition"
-        >
-          {toShow ? (
-            <HiOutlineEyeSlash className="text-white" size={24} />
-          ) : (
-            <HiOutlineEye className="text-white" size={24} />
-          )}
-        </button>
+      {/* Header of Balance Card */}
+      <div className="flex items-center justify-between mb-6 relative z-10">
+        <div className="flex items-center gap-2.5 text-white/95">
+          <CreditCard className="w-5 h-5 text-purple-200" />
+          <span className="text-xs font-bold uppercase tracking-wider text-purple-100">Wallet Balance</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Refresh button */}
+          <button
+            onClick={refreshBalance}
+            disabled={isLoading}
+            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition duration-150 disabled:opacity-50"
+            title="Refresh balance"
+          >
+            <RefreshCw className={`w-4 h-4 text-white ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+
+          {/* Visibility toggle button */}
+          <button
+            onClick={() => setToShow(!toShow)}
+            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition duration-150"
+            title={toShow ? 'Hide balance' : 'Show balance'}
+          >
+            {toShow ? <EyeOff className="w-4 h-4 text-white" /> : <Eye className="w-4 h-4 text-white" />}
+          </button>
+        </div>
       </div>
 
-      <div className="flex items-center text-white mt-4 mb-3">
-        <FaRegCreditCard size={24} />
-        <span className="uppercase text-md font-medium ml-2">Your Balance</span>
-      </div>
-
-      <h2 className="text-white text-4xl sm:text-5xl font-extrabold leading-tight mx-4 sm:mx-10 break-words">
-        {currency} {toShow ? (`${balance === "NaN" ? "0.00" : balance}`) : '••••••'}
-      </h2>
-      <p className="text-purple-200 mt-1 text-sm">Available balance</p>
-      <p className="text-purple-200 text-xs mt-1">Last updated: {updatedAt}</p>
-
-      <div className="mt-6 flex flex-col sm:flex-row sm:space-x-4 space-y-3 sm:space-y-0">
-        <ButtonDashboardtoRedirect to="/transfer/deposit">
-          <div className='flex items-center justify-center'>
-            <div className='px-2'>
-              <IoIosTrendingDown strokeWidth={18} size={25} />
-            </div>
-            Add Money
+      {/* Balance Numbers Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-end relative z-10 my-4">
+        {/* Unlocked Balance */}
+        <div className="space-y-1">
+          <span className="text-xs font-semibold text-purple-200">Available Balance</span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-bold text-purple-200">{currency}</span>
+            <span className="text-4xl sm:text-5xl font-black tracking-tight leading-none break-all">
+              {toShow ? <motion.span>{animatedBalance}</motion.span> : '••••••'}
+            </span>
           </div>
-        </ButtonDashboardtoRedirect>
-        <ButtonDashboardtoRedirect to="/p2p">
-          <div className='flex items-center justify-center'>
-            <div className='px-2'>
-              <P2P />
-            </div>
-            Send Money
+        </div>
+
+        {/* Locked Balance */}
+        <div className="space-y-1 border-t sm:border-t-0 sm:border-l border-white/10 pt-4 sm:pt-0 sm:pl-6">
+          <span className="text-xs font-semibold text-purple-200">Locked Balance</span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-xl font-bold text-purple-200">{currency}</span>
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-none break-all">
+              {toShow ? <motion.span>{animatedLocked}</motion.span> : '••••••'}
+            </span>
           </div>
-        </ButtonDashboardtoRedirect>
+        </div>
       </div>
-    </div>
+
+      <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/10 relative z-10 text-[10px] text-purple-200">
+        <span>Active Wallet</span>
+        {updatedAt && <span>Last updated: {updatedAt}</span>}
+      </div>
+
+      {/* Action Buttons */}
+      <div className="mt-6 flex flex-col sm:flex-row gap-3 relative z-10">
+        <button
+          onClick={() => router.push("/transfer/deposit")}
+          className="flex-1 py-3 px-4 rounded-xl bg-white text-purple-700 hover:bg-purple-50 font-bold text-sm flex items-center justify-center gap-2 transition duration-200 shadow-lg shadow-purple-950/20 active:scale-[0.98]"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add Money</span>
+        </button>
+        <button
+          onClick={() => router.push("/p2p")}
+          className="flex-1 py-3 px-4 rounded-xl bg-purple-700/60 hover:bg-purple-700/80 border border-white/20 text-white font-bold text-sm flex items-center justify-center gap-2 transition duration-200 active:scale-[0.98]"
+        >
+          <ArrowUpRight className="w-4 h-4" />
+          <span>Send Money</span>
+        </button>
+      </div>
+    </motion.div>
   );
 }
 
-export function ActionCard({ icon, label, to }: any) {
+export function ActionCard({ icon, label, to, className = "" }: any) {
   const router = useRouter();
   return (
-    <button
+    <motion.button
+      whileHover={{ y: -4, scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
       onClick={() => router.push(to)}
-      className="bg-white rounded-lg shadow p-6 flex flex-col items-center text-center hover:shadow-lg transition-shadow"
+      className={`rounded-2xl p-5 flex flex-col items-center justify-center text-center shadow-sm border border-slate-100 dark:border-slate-800/80 transition-all duration-200 ${className}`}
     >
-      <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mb-3">
+      <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3">
         {icon}
       </div>
-      <p className="text-sm font-semibold text-gray-700">{label}</p>
-    </button>
+      <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{label}</span>
+    </motion.button>
   );
 }
