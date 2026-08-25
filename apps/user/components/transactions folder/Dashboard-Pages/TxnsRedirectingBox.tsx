@@ -1,5 +1,5 @@
-import { Card } from "@repo/ui/card";
-import TxButton from "@repo/ui/txbutton";
+import Link from "next/link";
+import { ArrowRight, AlertCircle } from "lucide-react";
 import { RiArrowRightUpLine, RiArrowRightDownLine } from "react-icons/ri";
 
 interface TransactionCardProps {
@@ -26,25 +26,74 @@ export function TransactionCard({
   transactions: TransactionCardProps[];
   href: string;
 }) {
-  if (!transactions.length) {
-    return (
-      <div className="w-full">
-        <Card title="Recent Transactions">
-          <div className="mx-4 text-center font-bold py-8">
-            No Recent transactions
-          </div>
-        </Card>
-      </div>
-    );
-  }
+  const isWithdraw = href.toLowerCase().includes("withdraw");
 
   return (
-    <div className="w-full">
-      <Card title="Recent Transactions">
-        <div className="flex justify-end">
-          <TxButton placeholder="View all transactions" href={href} />
+    <div className="p-6 bg-white dark:bg-[#1a1a2e] rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm transition-colors duration-300">
+      <div className="flex justify-between items-center mb-5 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div>
+          <h3 className="text-md font-bold text-slate-800 dark:text-slate-200">Recent Bank Transfers</h3>
+          <p className="text-[11px] text-slate-400 dark:text-slate-500">Last transfers with external banks</p>
         </div>
-      </Card>
+      </div>
+
+      <div className="space-y-4">
+        {transactions.length === 0 ? (
+          <div className="py-8 text-center flex flex-col items-center justify-center gap-2">
+            <AlertCircle className="w-8 h-8 text-slate-350" />
+            <p className="text-xs text-slate-400">No transfers found.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {transactions.slice(0, 5).map((txn, index) => {
+              const initials = txn.provider
+                .split(" ")
+                .map((n) => n[0])
+                .join("")
+                .substring(0, 2)
+                .toUpperCase();
+              
+              const dateStr = new Date(txn.time).toLocaleDateString([], { month: "short", day: "numeric" });
+
+              return (
+                <div key={index} className="flex items-center justify-between text-xs py-1">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs">
+                      {initials}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-800 dark:text-slate-200">{txn.provider}</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500">{dateStr}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                      txn.status === "Success" 
+                        ? "bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-400"
+                        : txn.status === "Processing"
+                        ? "bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400"
+                        : "bg-red-50 text-red-700 dark:bg-red-950/20 dark:text-red-400"
+                    }`}>
+                      {txn.status}
+                    </span>
+
+                    <span className={`font-bold ${isWithdraw ? 'text-red-500' : 'text-green-600'}`}>
+                      {isWithdraw ? "-" : "+"} ₹{(txn.amount / 100).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+          <Link href={href} className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1">
+            View all transfers <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

@@ -72,29 +72,22 @@ export default async function Page() {
   const txns = await getOnRampTransactions();
   const accounts = await getAccounts();
   return (
-    <div className="flex justify-center px-2 sm:px-4 md:px-6 lg:px-10 py-4">
-      <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-12 gap-4">
+    <div className="flex justify-center py-4 w-full">
+      <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        <div className="bg-white w-full rounded-3xl p-2 lg:p-4 col-span-1 lg:col-span-7">
+        <div className="w-full col-span-1 lg:col-span-7">
           <AddMoney title="Withdraw" buttonThing="Withdraw Money" accounts={accounts}/>
         </div>
 
-        <div className="w-full col-span-1 lg:col-span-5 flex flex-col space-y-4">
-
-          <div className="bg-white w-full rounded-3xl p-4">
-            <BalanceCard
-              amount={balance ? balance.amount : 0}
-              locked={balance ? balance.locked : 0}
-            />
-          </div>
-
-          <div className="bg-white w-full rounded-3xl p-4">
-            <TransactionCard
-              transactions={txns ? txns : []}
-              href="/transactions/withdraw"
-            />
-          </div>
-
+        <div className="w-full col-span-1 lg:col-span-5 flex flex-col space-y-6">
+          <BalanceCard
+            amount={balance ? balance.amount : 0}
+            locked={balance ? balance.locked : 0}
+          />
+          <TransactionCard
+            transactions={txns ? txns : []}
+            href="/transactions/withdraw"
+          />
         </div>
 
       </div>

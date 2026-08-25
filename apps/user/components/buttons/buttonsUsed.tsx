@@ -27,11 +27,21 @@ export function TransferButton({placeholder, path}: {
     const currpath = usePathname();
     const selected = currpath === path;
 
-    return  <div>
-        <button onClick={() => {
+    return (
+      <button
+        onClick={() => {
             router.push(path);
-        }} suppressHydrationWarning={true} className={`text-black font-semibold h-10 w-max px-10 rounded-2xl ${selected ? "bg-white" : ""} hover:text-gray-600`}>{placeholder}</button>
-    </div>
+        }}
+        suppressHydrationWarning={true}
+        className={`flex-1 text-center font-bold text-sm py-2 px-6 rounded-xl transition duration-200 ${
+          selected
+            ? "bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-sm"
+            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+        }`}
+      >
+        {placeholder}
+      </button>
+    );
 }
 
 export function ButtonDashboardtoRedirect({children, to} : {children: React.ReactNode, to: string})

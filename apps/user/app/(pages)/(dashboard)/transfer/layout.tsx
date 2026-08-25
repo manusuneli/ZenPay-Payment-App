@@ -3,16 +3,16 @@ import { TransferButton } from "../../../../components/buttons/buttonsUsed";
 
 export default function TransferLayout({ children }: { children: React.ReactNode }): JSX.Element {
     return (
-        <div className="max-w-screen">
-            <div className="px-2 mt-20 text-3xl sm:text-4xl bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 inline-block text-transparent bg-clip-text font-bold mb-10">
-                Quick Transfer
-            </div>
-
-            <div className="grid lg:grid-cols-4 gap-4 pt-5">
-                <div className="col-span-1 col-start-2">
-                    <TransferButton placeholder="Deposit" path="/transfer/deposit" />
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-14">
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Quick Transfer</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Deposit or withdraw funds securely from your linked cards</p>
                 </div>
-                <div className="col-span-1 col-start-3">
+                
+                {/* Segmented switcher */}
+                <div className="flex bg-slate-100 dark:bg-slate-800/60 p-1.5 rounded-2xl w-full sm:max-w-[280px] border border-slate-200/50 dark:border-slate-700/30">
+                    <TransferButton placeholder="Deposit" path="/transfer/deposit" />
                     <TransferButton placeholder="Withdraw" path="/transfer/withdraw" />
                 </div>
             </div>
