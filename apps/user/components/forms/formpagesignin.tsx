@@ -1,163 +1,184 @@
 "use client";
+
 import React, { useEffect, useState } from "react";
-import LabelledInputAuth from "@repo/ui/labelledinputauth";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { LoginButton } from "@repo/ui/loginbutton";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { Eye, EyeOff, Phone, Lock, ArrowRight, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { useToast } from "../../providers/ToastProvider";
 
 export default function FormPageSignin() {
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [isLoading, setisLoading] = useState(false);
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { showToast } = useToast();
 
   useEffect(() => {
     const errorParam = searchParams.get("error");
     if (errorParam) {
-      alert(errorParam);
+      showToast(errorParam, "error");
     }
-  }, [searchParams]);
+  }, [searchParams, showToast]);
 
   async function onSubmit(e?: React.FormEvent, phone?: string, pass?: string) {
-
     if (e) e.preventDefault();
-    setisLoading(true);
+    
+    const targetPhone = phone ?? phoneNumber;
+    const targetPass = pass ?? password;
+
+    if (!targetPhone || targetPhone.length < 10) {
+      showToast("Please enter a valid 10-digit phone number.", "error");
+      return;
+    }
+    if (!targetPass || targetPass.length < 6) {
+      showToast("Password must be at least 6 characters.", "error");
+      return;
+    }
+
+    setIsLoading(true);
+    const toastId = showToast("Signing in...", "loading");
+
     try {
       const res = await signIn("signin", {
-        phone: phone ?? phoneNumber,
-        password: pass ?? password,
+        phone: targetPhone,
+        password: targetPass,
         redirect: false,
       });
 
       if (!res?.error) {
+        showToast("Signed in successfully!", "success");
         router.push("/dashboard");
-        alert("Signed in Successfully!!");
       } else {
-        alert("Invalid phone number or password");
+        showToast("Invalid phone number or password.", "error");
       }
     } catch (err: any) {
-      console.log(err);
-      alert("Something went wrong. Please try again.");
+      console.error(err);
+      showToast("Something went wrong. Please try again.", "error");
     } finally {
-      setisLoading(false);
+      setIsLoading(false);
     }
   }
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className="w-full max-w-lg mx-auto my-12 px-8 py-10 bg-white rounded-3xl border border-gray-300 shadow-lg"
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="w-full max-w-md p-8 bg-white dark:bg-[#1a1a2e] border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl transition-colors duration-300"
     >
-      <div className="flex items-center justify-center gap-3 pb-2 text-purple-700">
-        <span className="font-extrabold text-4xl tracking-tight">ZenPay</span>
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100">Sign In</h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5">Access your secure ZenPay wallet</p>
       </div>
 
-      <div className="text-center text-2xl font-bold text-gray-800 mt-2 mb-10">
-        Sign in
-      </div>
-
-      <div className="space-y-8">
-        <LabelledInputAuth
-          label="Phone Number"
-          type="tel"
-          placeholder="1231231230"
-          onChangeFunc={(num) => setPhoneNumber(num)}
-        />
-
-        <LabelledInputAuth
-          label="Password (min 6 characters)"
-          placeholder="1@3/4*6"
-          type="password"
-          onChangeFunc={(pass) => setPassword(pass)}
-        />
-
-        <div className="mt-6 flex justify-center">
-          <LoginButton state={isLoading} onClickFunc={() => {}}>
-            {isLoading ? (
-              <div role="status">
-                <svg
-                  aria-hidden="true"
-                  className="w-6 h-6 text-gray-200 animate-spin dark:text-gray-400 fill-purple-600"
-                  viewBox="0 0 100 101"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M100 50.5908C100 78.2051 77.6142 100.591 
-                    50 100.591C22.3858 100.591 0 78.2051 
-                    0 50.5908C0 22.9766 22.3858 0.59082 
-                    50 0.59082C77.6142 0.59082 100 22.9766 
-                    100 50.5908ZM9.08144 50.5908C9.08144 73.1895 
-                    27.4013 91.5094 50 91.5094C72.5987 91.5094 
-                    90.9186 73.1895 90.9186 50.5908C90.9186 
-                    27.9921 72.5987 9.67226 50 9.67226C27.4013 
-                    9.67226 9.08144 27.9921 9.08144 50.5908Z"
-                    fill="currentColor"
-                  />
-                  <path
-                    d="M93.9676 39.0409C96.393 
-                    38.4038 97.8624 35.9116 97.0079 
-                    33.5539C95.2932 28.8227 92.871 
-                    24.3692 89.8167 20.348C85.8452 
-                    15.1192 80.8826 10.7238 75.2124 
-                    7.41289C69.5422 4.10194 63.2754 
-                    1.94025 56.7698 1.05124C51.7666 
-                    0.367541 46.6976 0.446843 41.7345 
-                    1.27873C39.2613 1.69328 37.813 
-                    4.19778 38.4501 6.62326C39.0873 
-                    9.04874 41.5694 10.4717 44.0505 
-                    10.1071C47.8511 9.54855 51.7191 
-                    9.52689 55.5402 10.0491C60.8642 
-                    10.7766 65.9928 12.5457 70.6331 
-                    15.2552C75.2735 17.9648 79.3347 
-                    21.5619 82.5849 25.841C84.9175 
-                    28.9121 86.7997 32.2913 88.1811 
-                    35.8758C89.083 38.2158 91.5421 
-                    39.6781 93.9676 39.0409Z"
-                    fill="currentFill"
-                  />
-                </svg>
-              </div>
-            ) : (
-              "Sign in"
-            )}
-          </LoginButton>
+      <form onSubmit={onSubmit} className="space-y-6">
+        {/* Phone Input */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+            Phone Number
+          </label>
+          <div className="relative flex items-center">
+            {/* IN +91 Prefix */}
+            <div className="absolute left-3 flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-lg select-none border border-slate-200 dark:border-slate-700">
+              <span className="text-[10px] uppercase font-bold tracking-tight">IN</span>
+              <span>+91</span>
+            </div>
+            <input
+              type="tel"
+              required
+              disabled={isLoading}
+              maxLength={10}
+              placeholder="1231231230"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ""))}
+              className="w-full pl-24 pr-4 py-3 bg-slate-50 dark:bg-[#0f0f1a] border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 dark:focus:border-purple-500 disabled:opacity-60 transition duration-200"
+            />
+          </div>
         </div>
 
-        <div className="flex justify-center">
+        {/* Password Input */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+            Password
+          </label>
+          <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none">
+              <Lock className="w-5 h-5" />
+            </div>
+            <input
+              type={showPassword ? "text" : "password"}
+              required
+              disabled={isLoading}
+              placeholder="••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full pl-11 pr-11 py-3 bg-slate-50 dark:bg-[#0f0f1a] border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 dark:focus:border-purple-500 disabled:opacity-60 transition duration-200"
+            />
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
+            >
+              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Submit button */}
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold flex items-center justify-center gap-2 transition duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-md shadow-purple-500/10"
+        >
+          {isLoading ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <>
+              <span>Sign In</span>
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
+        </button>
+
+        {/* Demo credentials CTA */}
+        <div className="flex justify-center border-t border-slate-100 dark:border-slate-800/60 pt-4">
           <button
             type="button"
+            disabled={isLoading}
             onClick={() => onSubmit(undefined, "1212121212", "121212")}
-            className="mt-4 bg-indigo-500 text-white rounded-xl py-2 px-6 font-medium hover:bg-indigo-600 transition"
+            className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:underline transition disabled:opacity-50"
           >
             Use Demo Credentials
           </button>
         </div>
-      </div>
+      </form>
 
-      <div className="mt-10 text-center text-sm text-gray-700">
-        <div className="flex justify-center">
-          <span>Don't remember password?</span>
-          <Link
-            className="text-indigo-600 hover:underline ml-1"
-            href="/update/password"
+      {/* Nav footer */}
+      <div className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400 flex flex-col gap-2">
+        <div className="flex justify-center gap-1">
+          <span>Forgot password?</span>
+          <button
+            onClick={() => router.push("/update/password")}
+            className="text-purple-600 dark:text-purple-400 font-semibold hover:underline"
           >
-            Forgot password
-          </Link>
+            Reset password
+          </button>
         </div>
-        <div className="flex justify-center mt-2">
+        <div className="flex justify-center gap-1">
           <span>Don't have an account?</span>
-          <Link
-            className="text-indigo-600 hover:underline ml-1"
-            href="/auth/signup"
+          <button
+            onClick={() => router.push("/auth/signup")}
+            className="text-purple-600 dark:text-purple-400 font-semibold hover:underline"
           >
             Sign up
-          </Link>
+          </button>
         </div>
       </div>
-    </form>
+    </motion.div>
   );
 }

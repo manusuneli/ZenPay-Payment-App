@@ -1,40 +1,29 @@
-"use client"
-import React, { useEffect, useState } from "react";
-import LabelledInputAuth from "@repo/ui/labelledinputauth"
-import { useRouter } from "next/navigation";
-import {signIn} from "next-auth/react"
-import {z} from "zod";
-import { InputOTPGroup } from "../inputotpgroup";
+"use client";
 
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { z } from "zod";
+import { User, Mail, Phone, Lock, ArrowRight, Loader2, KeyRound } from "lucide-react";
+import { motion } from "framer-motion";
+import { InputOTPGroup } from "../inputotpgroup";
+import { useToast } from "../../providers/ToastProvider";
 
 const nextReqSchema = z.object({
   contact: z.string().length(10),
   Name: z.string().min(1),
-  email: z.string().email()
-})
-
+  email: z.string().email(),
+});
 
 const loginReqSchema = z.object({
   contact: z.string().length(10),
   Name: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(6).max(14),
-  receivedOtpCode: z.string().length(4)
-})
+  receivedOtpCode: z.string().length(4),
+});
 
-// https://ethanmick.com/build-a-custom-login-page-with-next-js-tailwind-css-and-next-auth/
-// https://www.ramielcreations.com/nexth-auth-magic-code
-// https://www.youtube.com/watch?v=bicCg4GxOP8&ab_channel=CandDev
-
-// Twillo
-// https://medium.com/globant/twilio-otp-authentication-12002a139e38
 export default function FormPageSignup() {
-  // const [error, setError] = useState<string | null>(null);
-  // const [searchParams, setSearchParams] = useSearchParams();
-
-  // const [showOTPbar, setShowOTPbar] = useState(false);
-  // const [sendOTPAgain, setSendOTPAgain] = useState(0);
-  // const [validate, setValidate] = useState(false);
   const [Name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [contact, setContact] = useState("");
@@ -47,9 +36,12 @@ export default function FormPageSignup() {
   const [isLoadingOtp, setIsLoadingOtp] = useState(false);
   const [OTPresponse, setOTPresponse] = useState("");
   const [isLoadingSignup, setIsLoadingSignup] = useState(false);
-  const router = useRouter()
-  const [firstTime, setFirstTime] = useState(true)
+  const [showPassword, setShowPassword] = useState(false);
+  const [firstTime, setFirstTime] = useState(true);
   const [mounted, setMounted] = useState(false);
+
+  const router = useRouter();
+  const { showToast } = useToast();
 
   useEffect(() => {
     setMounted(true);
@@ -61,137 +53,123 @@ export default function FormPageSignup() {
   };
 
   const handleVerify = async () => {
-
-    const res = await fetch("/api/auth/otp/verify-otp",
-      {
+    try {
+      const res = await fetch("/api/auth/otp/verify-otp", {
         method: "POST",
         headers: {
-           'Accept': 'application/json',
-            'Content-Type': 'application/json'
+          Accept: "application/json",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           email: email,
-          otp: receivedOtpCode
-        })
-      }  
-    );
+          otp: receivedOtpCode,
+        }),
+      });
 
-    if(res.status === 200)
-    {
-      setOTPresponse("OTP Verified!!");
+      if (res.status === 200) {
+        setOTPresponse("OTP Verified!!");
+        return 200;
+      } else if (res.status === 400) {
+        setOTPresponse("Incorrect OTP. Please try again.");
+        showToast("Incorrect OTP. Please try again.", "error");
+        return 400;
+      }
+      return res.status;
+    } catch (e) {
+      console.error(e);
+      return 500;
     }
-    else if(res.status === 400)
-    {
-      setOTPresponse("Incorrect OTP. Please try again.");
-    }
-    else 
-    {
-
-    }
-    return res.status;
-  }
+  };
 
   const handleSendOtp = async () => {
     setIsLoadingOtp(true);
     startTimer();
     setResendClicked(true);
+    const toastId = showToast("Sending OTP to email...", "loading");
     try {
-      const res = await fetch("/api/auth/otp/send-otp",
-        {
-          method: "POST",
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            email: email,
-            username: Name
-          })
-        }  
-      );
-      if(res.status === 200)
-      {
+      const res = await fetch("/api/auth/otp/send-otp", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email,
+          username: Name,
+        }),
+      });
+      if (res.status === 200) {
         setOtp(true);
-      }
-      else
-      {
-        setOtp(false)
+        showToast("OTP sent to your email successfully!", "success");
+      } else {
+        setOtp(false);
+        showToast("Failed to send OTP. Please try again.", "error");
       }
       return res.status;
+    } catch (e) {
+      showToast("Error in sending OTP", "error");
+    } finally {
+      setIsLoadingOtp(false);
     }
-    catch(e)
-    {
-      alert("Error in sending OTP");
-    }
-    finally{
-      setIsLoadingOtp(false)
-    }
-    
   };
 
   const handleLogin = async () => {
-    setIsLoadingSignup(true)
-    const responseVerification = await handleVerify();
-    if (responseVerification === 200) {
+    setIsLoadingSignup(true);
+    const verifyStatus = await handleVerify();
+    if (verifyStatus !== 200) {
+      setIsLoadingSignup(false);
+      return;
+    }
 
-      const res = await fetch("/api/auth/signup",
-        {
-          method: "POST",
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            email: email,
-            Name: Name,
-            password: password,
-            contact: contact
-          })
-        }  
-      );
-      if(res.status === 200)
-      {
-        // yaha kaafi problem aayi thi 
-        // signIn nextauth client side hi hona chahiye
+    const signupToastId = showToast("Creating your account...", "loading");
+
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email,
+          Name: Name,
+          password: password,
+          contact: contact,
+        }),
+      });
+
+      if (res.status === 200) {
+        // Authenticate the user right after successful registration
         try {
-          const res = await signIn("signup", {
+          const authRes = await signIn("signup", {
             name: Name,
             phone: contact,
             password: password,
             email: email,
-            redirect:false,
-          })
-          if(res?.error)
-          {
-            alert("Some Thing Went Wrong during Sign Up")
-            return new Error("Some Thing Went Wrong during Sign Up");
+            redirect: false,
+          });
+
+          if (authRes?.error) {
+            showToast("Something went wrong during sign-in", "error");
+          } else {
+            showToast("Signed up successfully!", "success");
+            router.push("/mpin/set");
           }
-          else 
-          {
-            router.push("/mpin/set")
-            alert("Signed up successfully!!")
-            return;
-          }
-        } 
-        catch (e) 
-        {
-          console.error("Error Occurred in Withdrawal", e);
-          return;
+        } catch (e) {
+          console.error("Error during authentication redirects:", e);
+          showToast("Authentication redirect failed", "error");
         }
-        finally
-        {
-          setIsLoadingSignup(false)
-        }
-        
+      } else {
+        showToast("Error occurred during Sign Up.", "error");
       }
-      // setMPIN
-      alert(`Error Occured during Sign up`);
-      return;
+    } catch (e) {
+      console.error(e);
+      showToast("Failed to register. Please try again.", "error");
+    } finally {
+      setIsLoadingSignup(false);
     }
-    return;
   };
 
-  
   const resendOTP = () => {
     setTimerRunning(false);
     startTimer();
@@ -199,10 +177,8 @@ export default function FormPageSignup() {
     handleSendOtp();
   };
 
-
-  
   useEffect(() => {
-    let timer : any;
+    let timer: any;
     if (timerRunning) {
       timer = setTimeout(() => {
         if (timeLeft > 0) {
@@ -212,10 +188,8 @@ export default function FormPageSignup() {
         }
       }, 1000);
     }
-
     return () => clearTimeout(timer);
   }, [timeLeft, timerRunning]);
-
 
   useEffect(() => {
     if (contact === "" || contact === null) {
@@ -225,154 +199,220 @@ export default function FormPageSignup() {
       setResendClicked(false);
     }
   }, [contact]);
-  
 
   if (!mounted) {
     return null;
   }
 
   return (
-    <div onSubmit={handleLogin} className="w-full py-5 mx-5 px-10 h-max bg-white rounded-3xl">
-      <div className="flex items-center justify-center gap-3 pb-2 text-purple-700">
-        <span className="font-extrabold text-4xl tracking-tight">ZenPay</span>
-      </div>
-      <div className="font-bold text-3xl">
-          Sign up
-      </div>
-     
-      <div className="my-4">
-        <div className="my-8">
-          <LabelledInputAuth label="First Name" type="text" placeholder="John Doe" onChangeFunc={(name) => {
-              setName(name)
-          }}></LabelledInputAuth>
-        </div>
-        <div className="my-8">
-          <LabelledInputAuth label="Email" placeholder="johndoe2@gmail.com" type="email" onChangeFunc={(email) => {
-              setEmail(email)
-          }}></LabelledInputAuth>
-        </div>
-        <div className="my-8">
-          <LabelledInputAuth label="Phone Number (10 digits)" placeholder="1231231230" type="tel" onChangeFunc={(num) => {
-              setContact(num)
-          }}></LabelledInputAuth>
-        </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="w-full max-w-md p-8 bg-white dark:bg-[#1a1a2e] border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl transition-colors duration-300"
+    >
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100">Sign Up</h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5">Create your secure ZenPay wallet</p>
       </div>
 
-      <div>
-        {contact && email && otp && (
-          <div className="text-center text-green-500 text-base mt-1 font-semibold">
-            OTP sent successfully on your email. Please enter OTP below.
+      <div className="space-y-6">
+        {/* Step 1 Form Inputs */}
+        <div className="space-y-5">
+          {/* Name Field */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+              First Name
+            </label>
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none">
+                <User className="w-5 h-5" />
+              </div>
+              <input
+                type="text"
+                required
+                disabled={otp || isLoadingOtp}
+                placeholder="John Doe"
+                value={Name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-[#0f0f1a] border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 dark:focus:border-purple-500 disabled:opacity-60 transition duration-200"
+              />
+            </div>
           </div>
-        )}
-        {contact && email && otp && (
-          <div className="space-y-2 w-full flex flex-col items-center justify-center my-2">
-            {/* For OTP */}
-            
-            <InputOTPGroup type="otp" onChangeFunc = {(e : string) => {
-              setReceivedOtpCode(e)
-            }}></InputOTPGroup>
-            <LabelledInputAuth label="Password (min 6 characters)" placeholder="1@2#3$" type="password" onChangeFunc={(pass) => {
-              setPassword(pass)
-            }}></LabelledInputAuth>
-            <div>
-              {resendClicked && timeLeft > 0 ? (
-                  <p className="text-sm">
-                    Resend OTP available in{" "}
-                    <span className="text-blue-500">
-                      {timeLeft > 0 ? `${timeLeft}` : ""}
-                    </span>
+
+          {/* Email Field */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+              Email Address
+            </label>
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none">
+                <Mail className="w-5 h-5" />
+              </div>
+              <input
+                type="email"
+                required
+                disabled={otp || isLoadingOtp}
+                placeholder="johndoe2@gmail.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-[#0f0f1a] border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 dark:focus:border-purple-500 disabled:opacity-60 transition duration-200"
+              />
+            </div>
+          </div>
+
+          {/* Phone Field */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+              Phone Number
+            </label>
+            <div className="relative flex items-center">
+              <div className="absolute left-3 flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-lg select-none border border-slate-200 dark:border-slate-700">
+                <span className="text-[10px] uppercase font-bold tracking-tight">IN</span>
+                <span>+91</span>
+              </div>
+              <input
+                type="tel"
+                required
+                disabled={otp || isLoadingOtp}
+                maxLength={10}
+                placeholder="1231231230"
+                value={contact}
+                onChange={(e) => setContact(e.target.value.replace(/\D/g, ""))}
+                className="w-full pl-24 pr-4 py-2.5 bg-slate-50 dark:bg-[#0f0f1a] border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 dark:focus:border-purple-500 disabled:opacity-60 transition duration-200"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Step 2 Fields (OTP and Password Setup) */}
+        {otp && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="space-y-5 border-t border-slate-100 dark:border-slate-850 pt-5"
+          >
+            {/* OTP Group */}
+            <div className="space-y-2 flex flex-col items-center justify-center">
+              <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                Enter 4-Digit OTP
+              </label>
+              <InputOTPGroup
+                type="otp"
+                onChangeFunc={(code: string) => setReceivedOtpCode(code)}
+              />
+              
+              {/* Resend OTP countdown */}
+              <div className="text-center mt-2">
+                {resendClicked && timeLeft > 0 ? (
+                  <p className="text-xs text-slate-500">
+                    Resend code available in{" "}
+                    <span className="text-purple-600 font-semibold">{timeLeft}s</span>
                   </p>
-                  ) : (
-                  <button 
+                ) : (
+                  <button
+                    type="button"
                     onClick={resendOTP}
-                    className="text-blue-500"
+                    className="text-xs font-semibold text-purple-600 hover:text-purple-700 hover:underline transition"
                   >
                     Resend OTP
                   </button>
                 )}
+              </div>
             </div>
-          </div>
+
+            {/* Password input */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                Create Password (min 6 characters)
+              </label>
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-[#0f0f1a] border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 dark:focus:border-purple-500 disabled:opacity-60 transition duration-200"
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Primary Action Button */}
+        {receivedOtpCode ? (
+          <button
+            type="button"
+            disabled={isLoadingSignup}
+            onClick={async () => {
+              if (loginReqSchema.safeParse({ Name, contact, email, receivedOtpCode, password }).success) {
+                await handleLogin();
+              } else {
+                showToast("Please fill in all fields correctly.", "error");
+              }
+            }}
+            className="w-full py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold flex items-center justify-center gap-2 transition duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-md shadow-purple-500/10"
+          >
+            {isLoadingSignup ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                <span>Sign Up & Login</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={isLoadingOtp}
+            onClick={async () => {
+              setIsLoadingOtp(true);
+              const isFormValid = nextReqSchema.safeParse({ Name, contact, email }).success;
+              if (isFormValid && (timeLeft === 0 || firstTime)) {
+                const resStatus = await handleSendOtp();
+                if (resStatus === 400) {
+                  showToast("An account already exists with this phone number or email.", "error");
+                } else if (resStatus === 500) {
+                  showToast("Something went wrong on the server.", "error");
+                } else if (resStatus === 200) {
+                  setFirstTime(false);
+                }
+              } else if (!isFormValid) {
+                showToast("Please enter a valid name, email, and 10-digit phone number.", "error");
+              }
+              setIsLoadingOtp(false);
+            }}
+            className="w-full py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold flex items-center justify-center gap-2 transition duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-md shadow-purple-500/10"
+          >
+            {isLoadingOtp ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                <span>Send OTP Verification</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
         )}
       </div>
-      {receivedOtpCode ? (
-        <button disabled={isLoadingSignup}
-          onClick={async () => {
-            if(loginReqSchema.safeParse({Name, contact, email, receivedOtpCode, password}).success)
-            {
-              await handleLogin();
-            }
-          }}
-          className="w-full mt-4 bg-green-500 hover:bg-green-400 rounded-lg h-10"
-        >
-          {isLoadingSignup ? <div role="status">
-             <svg aria-hidden="true" className="w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
-                 <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
-                 <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
-             </svg>
-             <span className="sr-only">Loading...</span>
-         </div>:"Login"}
-        </button>
-      ) : (
-        <button disabled={isLoadingOtp}
-          onClick={async () =>  {
-            setIsLoadingOtp(true)
-            const nextres =  nextReqSchema.safeParse({Name, contact, email}).success;
-            if(nextres && (timeLeft === 0 || firstTime))
-            {
-              const res = await handleSendOtp();
-              if(res === 400)
-              {
-                alert("User Already have an Account!!")
-              }
-              else if(res === 500)
-              {
-                alert("Something went wrong!")
-              }
-              else if(res === 200)
-              {
-                setFirstTime(false)
-              }
-            }
-            else if(nextres)
-            {
-              alert(`Invalid Info!`)
-            }
-            else if(!nextres)
-            {
-              alert(`Enter Complete Info!, ${nextres}`)
-            }
-            setIsLoadingOtp(false)
-          }
-          }
-          className="w-full mt-4 bg-green-500 hover:bg-green-400 rounded-lg h-10"
-        >
-          {isLoadingOtp ? 
-          <div role="status">
-          <svg aria-hidden="true" className="w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
-              <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
-          </svg>
-          <span className="sr-only">Loading...</span>
-      </div>:"Next"}
-        </button>
-      )}
-      {OTPresponse === "OTP Verified!!" ? (
-        <p className="text-green-500 text-sm text-center mt-2">
-          {OTPresponse}
-        </p>
-      ) : 
-      <p className="text-red-500 text-sm text-center mt-2">
-        {OTPresponse}
-      </p>}
 
-      <div className="pt-3 flex justify-center">already have an account?
-        <button className="pl-1 text-blue-600 hover:underline" onClick={() => {
-          router.push("/auth/signin")
-        }}>
-          Sign in
-        </button>
+      {/* Nav footer */}
+      <div className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400">
+        <div className="flex justify-center gap-1">
+          <span>Already have an account?</span>
+          <button
+            onClick={() => router.push("/auth/signin")}
+            className="text-purple-600 dark:text-purple-400 font-semibold hover:underline"
+          >
+            Sign in
+          </button>
+        </div>
       </div>
-  </div>
-    
+    </motion.div>
   );
 }
