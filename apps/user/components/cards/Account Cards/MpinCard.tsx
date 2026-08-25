@@ -1,11 +1,12 @@
 "use client";
 
-import { Card } from "@repo/ui/card";
-import { Button } from "@repo/ui/button";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { ShieldCheck, Loader2, ArrowRight, MailCheck, AlertCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { InputOTPGroup } from "../../inputotpgroup";
+import { useToast } from "../../../providers/ToastProvider";
 
 interface MpinCardInput {
   title: string;
@@ -13,55 +14,57 @@ interface MpinCardInput {
 }
 
 export function MpinCard({ title, type }: MpinCardInput) {
-    const [timerRunning, setTimerRunning] = useState(false);
-    const [otp, setOtp] = useState(false);
-    const [receivedOtpCode, setReceivedOtpCode] = useState("");
-    const [resendClicked, setResendClicked] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(60);
-    const session = useSession();
-    const [error, setError] = useState("");
-    const [firstTime, setFirstTime] = useState(true);
-    const [mpin, setmpin] = useState("");
-    const [confirmedmpin, setConfirmedmpin] = useState("");
-    const [OTPresponse, setOTPresponse] = useState("")
-    const router = useRouter();
-    const [isLoading, setIsLoading] = useState(false)
-    const startTimer = () => {
-        setTimeLeft(60);
-        setTimerRunning(true);
-    };
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [otp, setOtp] = useState(false);
+  const [receivedOtpCode, setReceivedOtpCode] = useState("");
+  const [resendClicked, setResendClicked] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [error, setError] = useState("");
+  const [mpin, setmpin] = useState("");
+  const [confirmedmpin, setConfirmedmpin] = useState("");
+  const [OTPresponse, setOTPresponse] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  
+  const session = useSession();
+  const router = useRouter();
+  const { showToast } = useToast();
+
+  const startTimer = () => {
+    setTimeLeft(60);
+    setTimerRunning(true);
+  };
+
   const handleVerify = async () => {
-    if (!session.data?.user) 
-    {
-        setError("User not logged in!")
-        return console.error("User not logged in!");
+    if (!session.data?.user) {
+      setError("User not logged in!");
+      return 500;
     }
-    const res = await fetch("/api/mpin/verify-otp",
-      {
+    try {
+      const res = await fetch("/api/mpin/verify-otp", {
         method: "POST",
         headers: {
-           'Accept': 'application/json',
-            'Content-Type': 'application/json'
+          Accept: "application/json",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           email: session.data?.user?.email,
-          otp: receivedOtpCode
-        })
-      }  
-    );
+          otp: receivedOtpCode,
+        }),
+      });
 
-    if(res.status === 200)
-    {
-      setOTPresponse("OTP Verified!!");
+      if (res.status === 200) {
+        setOTPresponse("OTP Verified!!");
+        showToast("OTP Verified successfully!", "success");
+      } else if (res.status === 400) {
+        setOTPresponse("Incorrect OTP. Please try again.");
+        showToast("Incorrect OTP. Please try again.", "error");
+      }
+      return res.status;
+    } catch (err) {
+      console.error(err);
+      return 500;
     }
-    else if(res.status === 400)
-    {
-      setOTPresponse("Incorrect OTP. Please try again.");
-    }
-    return res.status;
-  }
+  };
 
   const resendOTP = async () => {
     setTimerRunning(false);
@@ -85,233 +88,223 @@ export function MpinCard({ title, type }: MpinCardInput) {
   }, [timeLeft, timerRunning]);
 
   const handleSendOtp = async () => {
-
-    if (!session.data?.user) 
-    {
-        setError("User not logged in!")
-        return console.error("User not logged in!");
+    if (!session.data?.user) {
+      setError("User not logged in!");
+      return;
     }
     startTimer();
     setResendClicked(true);
-    const res = await fetch("/api/mpin/send-otp", {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: session.data?.user?.email,
-        username: session.data?.user?.name,
-      }),
-    });
-    if (res.status === 200) {
-      setOtp(true);
-    } else {
-      setOtp(false);
+    const toastId = showToast("Sending verification OTP...", "loading");
+    try {
+      const res = await fetch("/api/mpin/send-otp", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: session.data?.user?.email,
+          username: session.data?.user?.name,
+        }),
+      });
+      if (res.status === 200) {
+        setOtp(true);
+        showToast("OTP sent to your email successfully!", "success");
+      } else {
+        setOtp(false);
+        showToast("Failed to send OTP.", "error");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Error sending OTP", "error");
     }
   };
 
   async function setMpintoDB() {
-
-    if (!session.data?.user) 
-    {
-        setError("User not logged in!")
-        return console.error("User not logged in!");
+    if (!session.data?.user) {
+      setError("User not logged in!");
+      return;
     }
-    const res = await fetch("/api/mpin/update", {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: session.data.user.email,
-        mpin: mpin,
-      }),
-    });
-    if (res.ok) {
-      if(type === "set")
-      {
-        router.push("/accounts");
+    try {
+      const res = await fetch("/api/mpin/update", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: session.data.user.email,
+          mpin: mpin,
+        }),
+      });
+      if (res.ok) {
+        showToast("MPIN updated successfully!", "success");
+        if (type === "set") {
+          router.push("/accounts");
+        } else {
+          router.push("/profile");
+        }
+      } else {
+        showToast("Failed to update MPIN.", "error");
       }
-      else 
-      {
-        router.push("/profile")
-      }
-    } 
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to save MPIN", "error");
+    }
   }
 
   return (
-    <div className="min-h-fit mx-5">
-      <div className="pt-2"></div>
-      <Card title={title}>
-        {type === "set" ? (
-          <div className="font-2xl font-semibold px-4 py-3">
-            Let your digits defend your dollars—set your MPIN now!
-          </div>
-        ) : (
-          <div className="font-2xl font-semibold px-3 py-2">
-            New digits, new strength—update your MPIN and stay ahead!
-          </div>
-        )}
-        {error && <div className="font-sm text-red-500 font-semibold flex justify-center">{error}</div>}
-        {mpin && confirmedmpin && mpin !== confirmedmpin && (
-          <div className="pt-1 font-semibold flex justify-center font-xl text-red-500 font-sm">
-            Incorrect MPIN
-          </div>
-        )}
-        <div className="font-xl font-bold my-3 py-1 px-5 border-b border-sm">
-          Enter MPIN
+    <div className="p-6 bg-white dark:bg-[#1a1a2e] rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm w-full max-w-md mx-auto transition-colors duration-300">
+      
+      {/* Title */}
+      <div className="text-center mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
+        <div className="p-3 bg-purple-100 dark:bg-purple-950/50 rounded-2xl w-max mx-auto text-purple-600 dark:text-purple-400 mb-2">
+          <ShieldCheck className="w-8 h-8" />
         </div>
-        <div className="space-y-2 w-full flex flex-col items-center justify-center py-5">
-          <InputOTPGroup
-            type="password"
-            onChangeFunc={(e: string) => {
-              setmpin(e);
-            }}
-          />
-        </div>
-        <div className="font-xl font-bold my-3 px-5 py-1 border-b border-sm">
-          Confirm MPIN
-        </div>
-        <div className="space-y-2 w-full flex flex-col items-center justify-center my-2 py-5">
-          <InputOTPGroup
-            type="password"
-            onChangeFunc={(e: string) => {
-              setConfirmedmpin(e);
-            }}
-          />
-        </div>
-        <div className="flex justify-center py-3">
-          {type === "set" ? (
-            <Button state={isLoading}
-              onClickFunc={async () => {
-                setIsLoading(true)
-                await setMpintoDB();
-                setIsLoading(false)
-              }}
-            >
-              {isLoading ? 
-              <div role="status">
-              <svg aria-hidden="true" className="w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
-                  <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
-              </svg>
-              <span className="sr-only">Loading...</span>
-          </div>:"Submit"}
-            </Button>
-          ) : ( !otp &&
-            <Button state={isLoading}
-              onClickFunc={async () => {
-                setIsLoading(true)
-                if (mpin && confirmedmpin && mpin === confirmedmpin) {
-                  setError("");
-                  await handleSendOtp();
-                  setFirstTime(false);
-                  setOtp(true)
-                }
-                else
-                {
-                    if(session.data?.user)
-                    {
-                        setError("Invalid MPIN")
-                    }
-                    else 
-                    {
-                        setError("User not logged in!")
-                    }
-                }
-                setIsLoading(false)
-              }
-            }
-            >
-              {isLoading ? 
-              <div role="status">
-              <svg aria-hidden="true" className="w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
-                  <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
-              </svg>
-              <span className="sr-only">Loading...</span>
-          </div>: "Next"}
-            </Button>
-          )}
-        </div>
-        <div>
-          {type === "update" &&
-            mpin &&
-            confirmedmpin &&
-            mpin === confirmedmpin && otp && (
-              <div className="text-center text-green-500 text-base mt-1 font-semibold">
-                OTP sent successfully on your email. Please enter OTP below.
-              </div>
-            )}
-          {type === "update" &&
-            mpin &&
-            confirmedmpin &&
-            mpin === confirmedmpin  && otp && (
-              <div className="space-y-2 w-full flex flex-col items-center justify-center my-2">
-                <InputOTPGroup
-                  type="otp"
-                  onChangeFunc={(e: string) => {
-                    setReceivedOtpCode(e);
-                  }}
-                />
-                <div>
-                  {resendClicked && timeLeft > 0 ? (
-                    <p className="text-sm">
-                      Resend OTP available in{" "}
-                      <span className="text-blue-500">
-                        {timeLeft > 0 ? `${timeLeft}` : ""}
-                      </span>
-                    </p>
-                  ) : (
-                    <button onClick={resendOTP} className="text-blue-500">
-                      Resend OTP
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-        </div>
-        {OTPresponse === "OTP Verified!!" ? (
-            <p className="text-green-500 text-sm text-center mt-2">
-            {OTPresponse}
-            </p>
-        ) : 
-        <p className="text-red-500 text-sm text-center mt-2">
-            {OTPresponse}
-        </p>}
-        {type === "update" && mpin &&
-            confirmedmpin &&
-            mpin === confirmedmpin && otp ? 
-            <button
-              onClick={async () => {
-                
-                if(mpin && confirmedmpin && mpin === confirmedmpin && session)
-                {
-                    const res = await handleVerify();
+        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">{title}</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          {type === "set"
+            ? "Let your digits defend your dollars—set your MPIN now!"
+            : "New digits, new strength—update your MPIN and stay ahead!"}
+        </p>
+      </div>
 
-                    if(res === 200)
-                    {
-                        await setMpintoDB();
-                        setOTPresponse("OTP Verified!!")
-                    }
-                    else if(res === 400)
-                    {
-                        setOTPresponse("Incorrect OTP. Please try again.")
-                    }
-                    else 
-                    {
-                        setOTPresponse("Something went Wrong. Please try again.")
-                    }
-                }
+      {error && (
+        <div className="p-3 mb-4 rounded-xl bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-xs font-semibold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {mpin && confirmedmpin && mpin !== confirmedmpin && (
+        <div className="p-3 mb-4 rounded-xl bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-xs font-semibold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4" />
+          <span>MPINs do not match</span>
+        </div>
+      )}
+
+      <div className="space-y-6">
+        {/* Step 1: MPIN details inputs */}
+        <div className="space-y-5">
+          {/* Enter MPIN */}
+          <div className="space-y-2 flex flex-col items-center">
+            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+              Enter 4-Digit MPIN
+            </span>
+            <InputOTPGroup
+              type="password"
+              onChangeFunc={(code) => setmpin(code)}
+            />
+          </div>
+
+          {/* Confirm MPIN */}
+          <div className="space-y-2 flex flex-col items-center">
+            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+              Confirm 4-Digit MPIN
+            </span>
+            <InputOTPGroup
+              type="password"
+              onChangeFunc={(code) => setConfirmedmpin(code)}
+            />
+          </div>
+        </div>
+
+        {/* Step 2: Update OTP Verification container */}
+        {type === "update" && mpin && confirmedmpin && mpin === confirmedmpin && otp && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800"
+          >
+            <div className="text-center space-y-1 mb-2">
+              <div className="p-2 bg-green-50 dark:bg-green-950/20 rounded-xl w-max mx-auto text-green-600 dark:text-green-400">
+                <MailCheck className="w-5 h-5" />
+              </div>
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">OTP Sent successfully</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">Check your email for verification code</p>
+            </div>
+
+            <div className="flex flex-col items-center gap-3">
+              <InputOTPGroup
+                type="otp"
+                onChangeFunc={(code) => setReceivedOtpCode(code)}
+              />
+
+              {/* Resend OTP countdown */}
+              <div className="text-center">
+                {resendClicked && timeLeft > 0 ? (
+                  <p className="text-xs text-slate-500">
+                    Resend code in <span className="text-purple-600 font-semibold">{timeLeft}s</span>
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={resendOTP}
+                    className="text-xs font-semibold text-purple-600 hover:text-purple-700 hover:underline transition"
+                  >
+                    Resend OTP
+                  </button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Submit Actions */}
+        {type === "set" ? (
+          <button
+            onClick={async () => {
+              if (mpin && confirmedmpin && mpin === confirmedmpin) {
+                setIsLoading(true);
+                await setMpintoDB();
+                setIsLoading(false);
+              } else {
+                showToast("MPINs must match", "error");
+              }
             }}
-              className="w-full mt-4 bg-green-500 hover:bg-green-400 rounded-lg h-10 my-6"
-            >
-              Update MPIN
-            </button> : ""
-        }
-      </Card>
+            disabled={isLoading || !mpin || !confirmedmpin || mpin !== confirmedmpin}
+            className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm flex items-center justify-center gap-1.5 transition duration-200 shadow-md shadow-purple-500/10"
+          >
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><span>Set MPIN</span> <ArrowRight className="w-4 h-4" /></>}
+          </button>
+        ) : !otp ? (
+          <button
+            onClick={async () => {
+              setIsLoading(true);
+              if (mpin && confirmedmpin && mpin === confirmedmpin) {
+                setError("");
+                await handleSendOtp();
+              } else {
+                showToast("MPINs must match", "error");
+              }
+              setIsLoading(false);
+            }}
+            disabled={isLoading || !mpin || !confirmedmpin || mpin !== confirmedmpin}
+            className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm flex items-center justify-center gap-1.5 transition duration-200 shadow-md shadow-purple-500/10"
+          >
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><span>Verify Email</span> <ArrowRight className="w-4 h-4" /></>}
+          </button>
+        ) : (
+          <button
+            onClick={async () => {
+              if (mpin && confirmedmpin && mpin === confirmedmpin && receivedOtpCode) {
+                setIsLoading(true);
+                const verifyStatus = await handleVerify();
+                if (verifyStatus === 200) {
+                  await setMpintoDB();
+                }
+                setIsLoading(false);
+              } else {
+                showToast("Ensure MPIN and OTP are entered correctly.", "error");
+              }
+            }}
+            disabled={isLoading || !receivedOtpCode}
+            className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm flex items-center justify-center gap-1.5 transition duration-200 shadow-md shadow-purple-500/10"
+          >
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Update MPIN</span>}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
