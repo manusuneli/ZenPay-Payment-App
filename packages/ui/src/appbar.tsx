@@ -1,7 +1,42 @@
 "use client";
-import { JSX } from "react";
+import { JSX, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "./button";
+
+function ThemeToggle() {
+  const [dark, setDark] = useState(false);
+
+  useEffect(() => {
+    const isDark = localStorage.getItem("theme") === "dark";
+    setDark(isDark);
+    document.documentElement.classList.toggle("dark", isDark);
+  }, []);
+
+  const toggleTheme = () => {
+    const nextDark = !dark;
+    setDark(nextDark);
+    document.documentElement.classList.toggle("dark", nextDark);
+    localStorage.setItem("theme", nextDark ? "dark" : "light");
+  };
+
+  return (
+    <button
+      onClick={toggleTheme}
+      className="p-2 bg-white dark:bg-slate-800 text-gray-700 dark:text-yellow-400 rounded-full shadow-sm hover:bg-gray-100 dark:hover:bg-slate-700 transition"
+      title={dark ? "Light Mode" : "Dark Mode"}
+    >
+      {dark ? (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      ) : (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+        </svg>
+      )}
+    </button>
+  );
+}
 
 interface AppbarProps {
   user?: { name?: string | null };
@@ -34,9 +69,10 @@ export function AppBar({
       <div className="text-xl md:text-3xl font-bold text-slate-800">ZenPay</div>
 
       <div className="flex items-center gap-3 md:gap-5">
+        <ThemeToggle />
         <button
           onClick={() => router.push("/notificationsnpendings")}
-          className="relative bg-white p-2 rounded-full shadow-sm hover:bg-gray-100 transition"
+          className="relative bg-white dark:bg-slate-800 p-2 rounded-full shadow-sm hover:bg-gray-100 dark:hover:bg-slate-700 transition"
         >
           <BellIcon />
           {notifications?.length > 0 && (
