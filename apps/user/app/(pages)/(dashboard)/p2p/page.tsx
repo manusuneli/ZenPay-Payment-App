@@ -8,23 +8,22 @@ export default async function P2PTransferPage() {
   const contacts = await getContacts();
 
   return (
-    <div className="w-full px-4 sm:px-6">
-      <h1 className="mx-4 mt-20 text-3xl ml-20 sm:text-4xl bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 inline-block text-transparent bg-clip-text font-bold mb-6">
-        P2P Transfer
-      </h1>
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-14">
+      <div className="mb-6">
+        <h1 className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">P2P Transfer</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Send funds directly to other wallet users instantly</p>
+      </div>
       
-      <div className="my-3 grid grid-cols-1 lg:grid-cols-4 gap-2">
-        <div className="col-span-2 lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="w-full col-span-1 lg:col-span-7">
           <SendAndSearchContacts
             AllMyContacts={contacts.AllMyContacts}
             numberOfContacts={contacts.numberOfContacts || 0}
           />
         </div>
 
-        <div className="col-span-1 lg:col-span-1">
-          <div className="bg-white rounded-3xl p-6 w-full shadow-sm w-max">
-            <P2PTransactions transactions={txns?.tx || []} />
-          </div>
+        <div className="w-full col-span-1 lg:col-span-5">
+          <P2PTransactions transactions={txns?.tx || []} />
         </div>
       </div>
     </div>

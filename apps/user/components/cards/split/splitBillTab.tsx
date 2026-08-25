@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { SplitItem, Tab } from "../../../app/(pages)/(dashboard)/split-bill/page";
 import { SplitBillList } from "./splitBillList";
 import { SplitBillModal } from "./SplitBillModal";
-import { BsPlusLg } from "react-icons/bs";
+import { Plus, Search } from "lucide-react";
+import { useToast } from "../../../providers/ToastProvider";
 
 export function SplitBillTabs({
   allSplits,
@@ -15,6 +16,8 @@ export function SplitBillTabs({
   const [splitSearch, setSplitSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [totalAmt, setTotalAmt] = useState(0);
+  
+  const { showToast } = useToast();
 
   const filteredSplits = useMemo(() => {
     return allSplits?.filter(group => {
@@ -36,34 +39,45 @@ export function SplitBillTabs({
       <div className="flex justify-center mb-8">
         <button
           onClick={() => setShowForm(true)}
-          className="bg-[#6e3cbc] hover:bg-[#593397] text-white px-6 py-3 rounded-lg flex items-center space-x-2 shadow-md"
+          className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-3 rounded-xl flex items-center gap-1.5 shadow-sm font-semibold transition duration-200"
         >
-          <BsPlusLg className="text-lg" />
-          <span>Create Split</span>
+          <Plus className="w-4 h-4" />
+          <span>Create New Split</span>
         </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
-        <div className="flex items-center space-x-3">
-          {(["All", "Pending", "Completed"] as Tab[]).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-1 rounded-full text-sm font-medium shadow-sm border ${
-                activeTab === tab ? "bg-[#6e3cbc] text-white" : "text-gray-700 bg-white hover:bg-gray-100"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+        {/* Tab pills */}
+        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/60 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/30 w-full sm:w-auto">
+          {(["All", "Pending", "Completed"] as Tab[]).map(tab => {
+            const isActive = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-lg text-xs font-bold transition duration-200 ${
+                  isActive 
+                    ? "bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-sm" 
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                }`}
+              >
+                {tab}
+              </button>
+            );
+          })}
         </div>
-        <input
-          type="text"
-          placeholder="Search splits..."
-          value={splitSearch}
-          onChange={e => setSplitSearch(e.target.value)}
-          className="border rounded-md px-3 py-2 w-full sm:w-64 focus:ring-2 focus:ring-[#6e3cbc]"
-        />
+
+        {/* Search Input */}
+        <div className="relative w-full sm:w-64">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-450 dark:text-slate-500" />
+          <input
+            type="text"
+            placeholder="Search splits..."
+            value={splitSearch}
+            onChange={e => setSplitSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-[#0f0f1a] border border-slate-200 dark:border-slate-850 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 dark:focus:border-purple-500 transition duration-200"
+          />
+        </div>
       </div>
 
       <SplitBillList splits={filteredSplits} />
@@ -73,7 +87,7 @@ export function SplitBillTabs({
           setAmount={setTotalAmt}
           onClose={() => setShowForm(false)}
           onCreateSplit={(newGroup, desc) => {
-            alert("Split created: " + desc);
+            showToast("Bill split created successfully!", "success");
             setShowForm(false);
           }}
         />

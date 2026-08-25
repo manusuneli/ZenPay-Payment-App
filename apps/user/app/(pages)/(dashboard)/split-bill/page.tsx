@@ -34,15 +34,13 @@ export default async function SplitBillPage() {
   } = await getSplitDetails();
 
   return (
-    <div className="flex-auto mx-10">
-      <h1 className="mt-20 text-4xl ml-20 sm:text-4xl bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 inline-block text-transparent bg-clip-text font-bold mb-6">
-        Bills Split
-      </h1>
-      <h5 className="text-md ml-10 sm:text-2xl bg-purple-700 bg-clip-text text-transparent font-bold mb-6">
-        Manage shared expenses
-      </h5>
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-14">
+      <div className="mb-6">
+        <h1 className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Bills Split</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Manage and share expenses easily with friends</p>
+      </div>
 
-      <div className="mb-4 px-8 py-6 bg-white min-h-screen lg:mx-auto rounded-3xl">
+      <div className="space-y-6">
         <SplitBillCards
           paymentsPending={(paymentsPending || 0)/100}
           pendingCredits={(pendingCredits || 0)/100}

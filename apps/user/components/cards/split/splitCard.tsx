@@ -1,10 +1,11 @@
 import React from "react";
-import { FaClock, FaCreditCard, FaRegListAlt, FaBolt } from "react-icons/fa";
+import { Clock, CreditCard, ListTodo, Zap } from "lucide-react";
+
 interface CardProps {
   icon: React.ReactNode;
   label: string;
   value: number | string;
-  classes: string;
+  borderClass: string;
 }
 
 export function SplitBillCards({
@@ -19,44 +20,43 @@ export function SplitBillCards({
   activeSplits: number;
 }) {
   return (
-    
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       <Card
-        icon={<FaClock className="text-purple-600 text-xl" />}
-        label="Pending payments"
-        value={`₹ ${paymentsPending}`}
-        classes="bg-purple-50 border-purple-200 text-purple-800"
+        icon={<Clock className="text-purple-600 dark:text-purple-400 w-5 h-5" />}
+        label="Pending Payments"
+        value={`₹${paymentsPending.toFixed(2)}`}
+        borderClass="border-l-purple-500"
       />
       <Card
-        icon={<FaCreditCard className="text-green-600 text-xl" />}
-        label="Pending credits"
-        value={`₹ ${pendingCredits}`}
-        classes="bg-green-50 border-green-200 text-green-800"
+        icon={<CreditCard className="text-green-600 dark:text-green-400 w-5 h-5" />}
+        label="Pending Credits"
+        value={`₹${pendingCredits.toFixed(2)}`}
+        borderClass="border-l-green-500"
       />
       <Card
-        icon={<FaRegListAlt className="text-blue-600 text-xl" />}
-        label="Total splits"
+        icon={<ListTodo className="text-blue-600 dark:text-blue-400 w-5 h-5" />}
+        label="Total Splits"
         value={totalSplits}
-        classes="bg-blue-50 border-blue-200 text-blue-800"
+        borderClass="border-l-blue-500"
       />
       <Card
-        icon={<FaBolt className="text-yellow-600 text-xl" />}
-        label="Active splits"
+        icon={<Zap className="text-amber-500 dark:text-amber-400 w-5 h-5" />}
+        label="Active Splits"
         value={activeSplits}
-        classes="bg-yellow-50 border-yellow-200 text-yellow-800"
+        borderClass="border-l-amber-500"
       />
     </div>
   );
 }
 
-function Card({ icon, label, value, classes }: CardProps) {
+function Card({ icon, label, value, borderClass }: CardProps) {
   return (
-    <div className={`p-4 rounded-xl shadow-sm ${classes} border`}>
-      <div className="flex items-center space-x-2 mb-2">
+    <div className={`p-4 bg-white dark:bg-[#1a1a2e] rounded-2xl border-y border-r border-l-4 border-slate-200/60 dark:border-slate-800 ${borderClass} shadow-sm transition-colors duration-300`}>
+      <div className="flex items-center gap-2 mb-2 text-slate-500 dark:text-slate-400">
         {icon}
-        <h4 className="text-gray-600 text-sm font-medium">{label}</h4>
+        <h4 className="text-xs font-semibold uppercase tracking-wider">{label}</h4>
       </div>
-      <p className={`text-2xl font-semibold`}>{value}</p>
+      <p className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100">{value}</p>
     </div>
   );
 }
