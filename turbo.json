@@ -1,6 +1,15 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["**/.env.*local"],
+  "globalEnv": [
+    "DATABASE_URL",
+    "NEXTAUTH_SECRET",
+    "NEXTAUTH_URL",
+    "EMAIL_ID",
+    "EMAIL_PASS",
+    "REDIS_URL",
+    "JWT_SECRET"
+  ],
   "ui": "tui",
   "tasks": {
     "build": {
