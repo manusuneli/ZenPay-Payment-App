@@ -3,6 +3,8 @@ import { Metadata } from "next";
 import SideBarMobile from "../../../components/SideBarMobile";
 import SidebarPC from "../../../components/SideBarPC";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "ZenPay App",
   description: "A wallet app",

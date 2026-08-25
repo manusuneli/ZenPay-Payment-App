@@ -4,6 +4,8 @@ import { NEXT_AUTH } from "../../lib/auth";
 import FormPageSignin from "../../../components/forms/formpagesignin";
 import AuthBrandingPanel from "../../../components/forms/AuthBrandingPanel";
 
+export const dynamic = "force-dynamic";
+
 export default async function RegisterPage() {
   const session = await getServerSession(NEXT_AUTH);
 
